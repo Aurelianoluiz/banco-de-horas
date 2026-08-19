@@ -1,0 +1,42 @@
+name: Banco de Horas CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Validate HTML
+        run: |
+          test -f index.html
+          grep -q '<html' index.html
+          grep -q 'app.js' index.html
+      - name: Validate application files
+        run: |
+          test -f app.js
+          test -f style.css
+          test -f manifest.webmanifest
+          test -f data-model.js
+      - name: Check JavaScript syntax
+        run: |
+          node --check app.js
+          node --check data-model.js
+      - name: Check required project sections
+        run: |
+          grep -q 'Banco de Horas' index.html
+          grep -q 'Férias' index.html
+          grep -q 'Folgas' index.html
+          grep -q 'Colaboradores' index.html
+      - name: Repository summary
+        run: |
+          echo "Banco de Horas CI OK"
+          echo "Files: $(find . -maxdepth 2 -type f | wc -l)"
