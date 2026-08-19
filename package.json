@@ -5,6 +5,6 @@
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.js",
-    "check": "node --check app.js && node --check data-model.js && node --check integration.js && node --check importadores/apontamento-xls.js && node --check rules/jornada.js && node --check rules/fechamento.js && node --check rules/compensacao.js && node --check api/repository.js && node --check api/services/apontamentos.js && node --check api/services/colaboradores.js && node --check api/services/auditoria.js && node --check tests/compensacao.test.js && node --check tests/xls-regression.test.js && node --check tests/closing.test.js && node --check tests/repository.test.js && node --check tests/services.test.js"
+    "check": "node --check data-model.js && node --check integration.js && node --check importadores/apontamento-xls.js && node --check rules/jornada.js && node --check rules/fechamento.js && node --check rules/compensacao.js && node --check api/repository.js && node --check api/services/apontamentos.js && node --check api/services/colaboradores.js && node --check api/services/auditoria.js && node --check api/services/fechamento.js && node --check tests/compensacao.test.js && node --check tests/xls-regression.test.js && node --check tests/closing.test.js && node --check tests/repository.test.js && node --check tests/services.test.js && node --check tests/fechamento-service.test.js"
   }
 }
