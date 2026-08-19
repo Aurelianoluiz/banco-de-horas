@@ -1,3 +1,8 @@
+const safeIdentifier = (value) => {
+  if (!/^[a-z_][a-z0-9_]*$/i.test(value)) throw new TypeError(`Identificador inválido: ${value}`);
+  return `"${value}"`;
+};
+
 export class PostgresRepository {
   constructor(pool) {
     if (!pool?.query) throw new TypeError('pool PostgreSQL inválido');
@@ -8,8 +13,9 @@ export class PostgresRepository {
     return this.pool.query(text, values);
   }
 
-  async list(table, { where = '', values = [] } = {}) {
-    const result = await this.query(`SELECT * FROM ${safeIdentifier(table)} ${where}`, values);
+  async list(table, options = {}) {
+    const { where = '', values = [] } = options;
+    const result = await this.query(`SELECT * FROM ${safeIdentifier(table)}${where ? ` WHERE ${where}` : ''}`, values);
     return result.rows;
   }
 
@@ -18,8 +24,3 @@ export class PostgresRepository {
     return result.rows[0] ?? null;
   }
 }
-
-const safeIdentifier = (value) => {
-  if (!/^[a-z_][a-z0-9_]*$/i.test(value)) throw new TypeError(`Identificador inválido: ${value}`);
-  return `"${value}"`;
-};
