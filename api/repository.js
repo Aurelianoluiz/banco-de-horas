@@ -16,7 +16,8 @@ export class MemoryRepository {
     return this.collections.get(name);
   }
 
-  list(name, predicate = () => true) {
+  list(name, options = {}) {
+    const predicate = typeof options === 'function' ? options : (options.predicate || (() => true));
     return [...this.collection(name).values()].filter(predicate).map(structuredClone);
   }
 
