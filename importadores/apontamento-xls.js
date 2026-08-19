@@ -13,14 +13,16 @@ export function timeToMinutes(value) {
   return Number(match[1]) * 60 + Number(match[2]);
 }
 
+function minutesToTime(minutes) {
+  const value = Math.max(0, Number(minutes) || 0);
+  return `${String(Math.floor(value / 60)).padStart(2, '0')}:${String(value % 60).padStart(2, '0')}`;
+}
+
 export function dateToISO(value) {
-  if (value instanceof Date && !Number.isNaN(value.getTime())) {
-    return value.toISOString().slice(0, 10);
-  }
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return value.toISOString().slice(0, 10);
   if (typeof value === 'number') {
     const epoch = new Date(Date.UTC(1899, 11, 30));
-    const date = new Date(epoch.getTime() + value * 86400000);
-    return date.toISOString().slice(0, 10);
+    return new Date(epoch.getTime() + value * 86400000).toISOString().slice(0, 10);
   }
   const s = text(value);
   const br = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s);
@@ -55,7 +57,6 @@ export function analyzeApontamentoRows(rows) {
   const errors = [];
   const warnings = [];
   const records = [];
-
   const name = text(valueAt(rows, 3, 3));
   const salary = Number(valueAt(rows, 5, 8) || 0);
   const monthlyMinutes = timeToMinutes(valueAt(rows, 5, 14)) ?? Number(valueAt(rows, 5, 14) || 0) * 60;
@@ -81,9 +82,7 @@ export function analyzeApontamentoRows(rows) {
       errors.push({ code: 'DATA_INVALIDA', row, message: `Linha ${row}: data inválida.` });
       continue;
     }
-    if (!STATUS.has(record.ocorrencia)) {
-      warnings.push({ code: 'OCORRENCIA_DESCONHECIDA', row, message: `Linha ${row}: ocorrência '${record.ocorrencia}' não pertence à lista conhecida.` });
-    }
+    if (!STATUS.has(record.ocorrencia)) warnings.push({ code: 'OCORRENCIA_DESCONHECIDA', row, message: `Linha ${row}: ocorrência '${record.ocorrencia}' não pertence à lista conhecida.` });
     if (record.entrada1 && timeToMinutes(record.entrada1) == null) warnings.push({ code: 'ENTRADA_INVALIDA', row, message: `Linha ${row}: entrada inválida.` });
     if (record.saida1 && timeToMinutes(record.saida1) == null) warnings.push({ code: 'SAIDA_INVALIDA', row, message: `Linha ${row}: saída inválida.` });
     records.push({ ...record, sourceRow: row });
@@ -101,37 +100,31 @@ export function analyzeApontamentoRows(rows) {
     perdaPorFaltasAtrasos: timeToMinutes(valueAt(rows, 56, 11)),
   };
 
-  return {
-    metadata: { name, salary, monthlyMinutes, segQui, sexta, sabado, tolerancia, periodoInicio, periodoFim },
-    records,
-    summary,
-    diagnostics: { valid: errors.length === 0, errors, warnings },
-  };
+  return { metadata: { name, salary, monthlyMinutes, segQui, sexta, sabado, tolerancia, periodoInicio, periodoFim }, records, summary, diagnostics: { valid: errors.length === 0, errors, warnings } };
 }
 
 export function importApontamentoWorkbook(workbook) {
-  if (!workbook?.Sheets?.Plan1) {
-    return { diagnostics: { valid: false, errors: [{ code: 'ABA_PLAN1_AUSENTE', message: 'A aba Plan1 não foi encontrada.' }], warnings: [] } };
-  }
+  if (!workbook?.Sheets?.Plan1) return { diagnostics: { valid: false, errors: [{ code: 'ABA_PLAN1_AUSENTE', message: 'A aba Plan1 não foi encontrada.' }], warnings: [] } };
   const XLSX = globalThis.XLSX;
-  if (!XLSX?.utils?.sheet_to_json) {
-    throw new Error('A biblioteca XLSX precisa estar disponível para ler a planilha.');
-  }
+  if (!XLSX?.utils?.sheet_to_json) throw new Error('A biblioteca XLSX precisa estar disponível para ler a planilha.');
   const rows = XLSX.utils.sheet_to_json(workbook.Sheets.Plan1, { header: 1, raw: true, defval: null });
   return analyzeApontamentoRows(rows);
 }
 
 export function toSystemRecords(result, collaboratorId) {
-  return result.records.map((r) => ({
-    id: `xls-${r.data}-${collaboratorId}`,
-    cid: collaboratorId,
-    date: r.data,
-    in: r.entrada1 || '',
-    out: r.saida2 || r.saida1 || '',
-    brk: r.entrada2 && r.saida1 ? `${Math.max(0, (timeToMinutes(r.entrada2) - timeToMinutes(r.saida1)))}min` : '00:00',
-    ocorrencia: r.ocorrencia,
-    source: 'Apontamento.xls',
-    sourceRow: r.sourceRow,
-    importedAt: new Date().toISOString(),
-  }));
+  return result.records.map((r) => {
+    const breakMinutes = r.entrada2 && r.saida1 ? Math.max(0, timeToMinutes(r.entrada2) - timeToMinutes(r.saida1)) : 0;
+    return {
+      id: `xls-${r.data}-${collaboratorId}`,
+      cid: collaboratorId,
+      date: r.data,
+      in: r.entrada1 || '',
+      out: r.saida2 || r.saida1 || '',
+      brk: minutesToTime(breakMinutes),
+      ocorrencia: r.ocorrencia,
+      source: 'Apontamento.xls',
+      sourceRow: r.sourceRow,
+      importedAt: new Date().toISOString(),
+    };
+  });
 }
