@@ -1,0 +1,6 @@
+// Férias, folgas e calendário: camada independente para não misturar regras na UI.
+export function daysBetween(start,end){const a=new Date(start+'T12:00:00'),b=new Date(end+'T12:00:00');return Math.max(0,Math.floor((b-a)/86400000)+1)}
+export function isBusinessDay(date,holidays=[]){const d=new Date(date+'T12:00:00').getDay();return d!==0&&d!==6&&!holidays.includes(date)}
+export function vacationDays(start,end){return daysBetween(start,end)}
+export function calendarEvents(db,year,month){const prefix=`${year}-${String(month).padStart(2,'0')}`;const events=[];(db.ferias||[]).forEach(x=>{if((x.inicio||'').startsWith(prefix)||(x.fim||'').startsWith(prefix))events.push({...x,type:'ferias'})});(db.folgas||[]).forEach(x=>{if((x.data||'').startsWith(prefix))events.push({...x,type:'folga'})});(db.feriados||[]).forEach(x=>{if((x.data||'').startsWith(prefix))events.push({...x,type:'feriado'})});return events}
+export function absenceSummary(db,collaboratorId){const ferias=(db.ferias||[]).filter(x=>x.colaboradorId===collaboratorId);const folgas=(db.folgas||[]).filter(x=>x.colaboradorId===collaboratorId);return {ferias,folgas,totalFeriasDias:ferias.reduce((n,x)=>n+(x.dias||vacationDays(x.inicio,x.fim)),0),totalFolgas:folgas.length}}
