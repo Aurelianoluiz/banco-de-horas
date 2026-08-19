@@ -26,10 +26,12 @@ jobs:
           test -f style.css
           test -f manifest.webmanifest
           test -f data-model.js
+          test -f rules/jornada.js
+          test -f rules/fechamento.js
       - name: Check JavaScript syntax
-        run: |
-          node --check app.js
-          node --check data-model.js
+        run: npm run check
+      - name: Run automated tests
+        run: npm test
       - name: Check required project sections
         run: |
           grep -q 'Banco de Horas' index.html
