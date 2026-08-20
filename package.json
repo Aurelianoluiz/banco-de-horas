@@ -3,8 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "dependencies": {
+    "pg": "^8.16.3"
+  },
   "scripts": {
     "test": "node --test tests/*.test.js",
-    "check": "node --check data-model.js && node --check integration.js && node --check importadores/apontamento-xls.js && node --check rules/jornada.js && node --check rules/fechamento.js && node --check rules/compensacao.js && node --check api/repository.js && node --check api/repository-postgres.js && node --check api/http.js && node --check api/services/apontamentos.js && node --check api/services/colaboradores.js && node --check api/services/auditoria.js && node --check api/services/fechamento.js && node --check api/services/banco-horas.js && node --check tests/compensacao.test.js && node --check tests/xls-regression.test.js && node --check tests/closing.test.js && node --check tests/repository.test.js && node --check tests/services.test.js && node --check tests/fechamento-service.test.js && node --check tests/postgres-repository.test.js && node --check tests/http.test.js"
+    "check": "node --check data-model.js && node --check integration.js && node --check importadores/apontamento-xls.js && node --check rules/jornada.js && node --check rules/fechamento.js && node --check rules/compensacao.js && node --check api/repository.js && node --check api/repository-postgres.js && node --check api/postgres-pool.js && node --check api/repository-factory.js && node --check api/http.js && node --check api/services/apontamentos.js && node --check api/services/colaboradores.js && node --check api/services/auditoria.js && node --check api/services/fechamento.js && node --check api/services/banco-horas.js && node --check tests/compensacao.test.js && node --check tests/xls-regression.test.js && node --check tests/closing.test.js && node --check tests/repository.test.js && node --check tests/services.test.js && node --check tests/fechamento-service.test.js && node --check tests/repository-postgres.test.js && node --check tests/fechamento-auditoria.test.js && node --check tests/http.test.js"
   }
 }
