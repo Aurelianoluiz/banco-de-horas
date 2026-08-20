@@ -8,21 +8,22 @@ export class FechamentoService {
     this.auditoria = auditoria;
   }
 
-  resumo(colaboradorId, competencia) {
-    const points = this.repository.list('apontamentos');
+  async resumo(colaboradorId, competencia) {
+    const points = await this.repository.list('apontamentos');
     return monthlySummary(points, colaboradorId, competencia);
   }
 
-  fechar({ colaboradorId, competencia, saldoAnterior = 0, usuarioId = null }) {
-    const existente = this.repository.list('fechamentos', (item) => item.colaboradorId === colaboradorId && item.competencia === competencia)[0];
+  async fechar({ colaboradorId, competencia, saldoAnterior = 0, usuarioId = null }) {
+    const fechamentos = await this.repository.list('fechamentos');
+    const existente = fechamentos.find((item) => item.colaboradorId === colaboradorId && item.competencia === competencia);
     if (existente) throw new Error(`Competência já fechada: ${competencia}`);
 
-    const points = this.repository.list('apontamentos');
+    const points = await this.repository.list('apontamentos');
     const fechamento = closeMonth({ points, colaboradorId, competencia, saldoAnterior });
-    const salvo = this.repository.insert('fechamentos', { id: makeId(), status: 'fechado', ...fechamento });
+    const salvo = await this.repository.insert('fechamentos', { id: makeId(), status: 'fechado', ...fechamento });
 
     if (this.auditoria) {
-      this.auditoria.registrar({
+      await this.auditoria.registrar({
         usuarioId,
         acao: 'FECHAR_COMPETENCIA',
         entidade: 'fechamentos',
@@ -34,7 +35,7 @@ export class FechamentoService {
     return salvo;
   }
 
-  listar() {
+  async listar() {
     return this.repository.list('fechamentos');
   }
 }
