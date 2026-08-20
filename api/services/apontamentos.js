@@ -3,9 +3,15 @@ import { calculatePoint } from '../../rules/jornada.js';
 const makeId = () => `apt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 export class ApontamentosService {
-  constructor(repository, config) {
+  constructor(repository, config, auditoria = null, actor = () => null) {
     this.repository = repository;
     this.config = config;
+    this.auditoria = auditoria;
+    this.actor = actor;
+  }
+
+  registrar(evento) {
+    if (this.auditoria) this.auditoria.registrar({ usuarioId: this.actor(), ...evento });
   }
 
   listar(filtro = {}) {
@@ -23,7 +29,7 @@ export class ApontamentosService {
 
   criar(input) {
     const result = calculatePoint(input, this.config);
-    return this.repository.insert('apontamentos', {
+    const item = this.repository.insert('apontamentos', {
       id: input.id || makeId(),
       colaboradorId: input.colaboradorId,
       data: input.data,
@@ -33,6 +39,8 @@ export class ApontamentosService {
       ocorrencia: input.ocorrencia || 'Normal',
       ...result
     });
+    this.registrar({ acao: 'CRIAR', entidade: 'apontamentos', registroId: item.id, depois: item });
+    return item;
   }
 
   atualizar(id, changes) {
@@ -40,10 +48,16 @@ export class ApontamentosService {
     if (!current) return null;
     const merged = { ...current, ...changes };
     const result = calculatePoint(merged, this.config);
-    return this.repository.update('apontamentos', id, { ...changes, ...result });
+    const depois = this.repository.update('apontamentos', id, { ...changes, ...result });
+    this.registrar({ acao: 'ALTERAR', entidade: 'apontamentos', registroId: id, antes: current, depois });
+    return depois;
   }
 
   excluir(id) {
-    return this.repository.remove('apontamentos', id);
+    const antes = this.obter(id);
+    if (!antes) return false;
+    const removido = this.repository.remove('apontamentos', id);
+    if (removido) this.registrar({ acao: 'EXCLUIR', entidade: 'apontamentos', registroId: id, antes });
+    return removido;
   }
 }
