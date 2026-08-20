@@ -1,20 +1,25 @@
 # Banco PostgreSQL
 
-A migration `001_initial.sql` cria o schema inicial da v1.0.
+As migrations desta pasta definem o schema da v1.0.
 
-## Ordem lógica
+## Arquivos
 
-1. usuarios
-2. colaboradores
-3. apontamentos
-4. ferias
-5. folgas
-6. feriados
-7. atestados
-8. ajustes
-9. fechamentos
-10. auditoria
-11. configuracoes
+- `001_initial.sql`: tabelas, relacionamentos, constraints e índices principais.
+- `002_indexes.sql`: índices complementares para consultas frequentes.
+- `env.example`: variáveis necessárias para conexão e autenticação.
+
+## Configuração
+
+Copie `env.example` para o arquivo de ambiente usado pelo servidor e preencha os valores reais. Nunca faça commit de credenciais reais.
+
+Variáveis:
+
+- `DATABASE_URL`: string de conexão PostgreSQL.
+- `AUTH_SECRET`: segredo com pelo menos 32 caracteres.
+
+## Aplicação
+
+Execute as migrations em ordem (`001_initial.sql`, depois `002_indexes.sql`) em um banco PostgreSQL de desenvolvimento antes de produção.
 
 ## Regras estruturais
 
@@ -24,6 +29,4 @@ A migration `001_initial.sql` cria o schema inicial da v1.0.
 - Uma competência só pode ser fechada uma vez por colaborador.
 - Férias e atestados não aceitam intervalo com fim anterior ao início.
 - Valores de auditoria são armazenados como `JSONB`.
-- Índices são criados para as consultas por colaborador, competência, data e auditoria.
-
-A migration deve ser aplicada em um PostgreSQL de desenvolvimento antes da produção. Credenciais não devem ser armazenadas no repositório.
+- Índices são criados para consultas por colaborador, competência, data e auditoria.
