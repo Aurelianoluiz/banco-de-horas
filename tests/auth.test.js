@@ -2,26 +2,29 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createAuth } from '../api/auth.js';
 
-const auth = createAuth({ tokenSecret: 'test-secret', users: [
-  { id: 'u1', nome: 'Admin', email: 'admin@example.com', senha: '123', role: 'admin' },
-  { id: 'u2', nome: 'João', email: 'joao@example.com', senha: '123', role: 'colaborador' }
-] });
+const secret = 'test-secret-012345678901234567890123';
+const auth = createAuth({ tokenSecret: secret });
+const users = [
+  { id: 'u1', nome: 'Admin', email: 'admin@example.com', senhaHash: auth.hashPassword('123'), role: 'admin' },
+  { id: 'u2', nome: 'João', email: 'joao@example.com', senhaHash: auth.hashPassword('123'), role: 'colaborador' }
+];
+const configuredAuth = createAuth({ tokenSecret: secret, users });
 
 test('login gera identidade e token', () => {
-  const result = auth.login({ email: 'admin@example.com', senha: '123' });
+  const result = configuredAuth.login({ email: 'admin@example.com', senha: '123' });
   assert.equal(result.user.role, 'admin');
   assert.ok(result.token);
-  assert.deepEqual(auth.authenticate(result.token).sub, 'u1');
+  assert.deepEqual(configuredAuth.authenticate(result.token).sub, 'u1');
 });
 
 test('senha inválida não autentica', () => {
-  assert.equal(auth.login({ email: 'admin@example.com', senha: 'errada' }), null);
+  assert.equal(configuredAuth.login({ email: 'admin@example.com', senha: 'errada' }), null);
 });
 
 test('permissões variam conforme o perfil', () => {
-  const admin = auth.authenticate(auth.login({ email: 'admin@example.com', senha: '123' }).token);
-  const colaborador = auth.authenticate(auth.login({ email: 'joao@example.com', senha: '123' }).token);
-  assert.equal(auth.authorize(admin, 'configuracoes', 'delete'), true);
-  assert.equal(auth.authorize(colaborador, 'colaboradores', 'delete'), false);
-  assert.equal(auth.authorize(colaborador, 'apontamentos', 'create'), true);
+  const admin = configuredAuth.authenticate(configuredAuth.login({ email: 'admin@example.com', senha: '123' }).token);
+  const colaborador = configuredAuth.authenticate(configuredAuth.login({ email: 'joao@example.com', senha: '123' }).token);
+  assert.equal(configuredAuth.authorize(admin, 'configuracoes', 'delete'), true);
+  assert.equal(configuredAuth.authorize(colaborador, 'colaboradores', 'delete'), false);
+  assert.equal(configuredAuth.authorize(colaborador, 'apontamentos', 'create'), true);
 });
