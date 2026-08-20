@@ -8,24 +8,26 @@ export class ColaboradoresService {
   }
 
   registrar(evento) {
-    if (this.auditoria) this.auditoria.registrar({ usuarioId: this.actor(), ...evento });
+    if (this.auditoria) return this.auditoria.registrar({ usuarioId: this.actor(), ...evento });
+    return null;
   }
 
-  listar(filtro = {}) {
-    return this.repository.list('colaboradores', (item) => {
+  async listar(filtro = {}) {
+    const records = await this.repository.list('colaboradores');
+    return records.filter((item) => {
       if (filtro.status && item.status !== filtro.status) return false;
       if (filtro.nome && !item.nome?.toLowerCase().includes(filtro.nome.toLowerCase())) return false;
       return true;
     });
   }
 
-  obter(id) {
+  async obter(id) {
     return this.repository.get('colaboradores', id);
   }
 
-  criar(input) {
+  async criar(input) {
     if (!input?.nome?.trim()) throw new TypeError('nome é obrigatório');
-    const item = this.repository.insert('colaboradores', {
+    const item = await this.repository.insert('colaboradores', {
       id: input.id || makeId(),
       nome: input.nome.trim(),
       salario: input.salario ?? null,
@@ -33,27 +35,27 @@ export class ColaboradoresService {
       tolerancia: input.tolerancia || '00:15',
       status: input.status || 'ativo'
     });
-    this.registrar({ acao: 'CRIAR', entidade: 'colaboradores', registroId: item.id, depois: item });
+    await this.registrar({ acao: 'CRIAR', entidade: 'colaboradores', registroId: item.id, depois: item });
     return item;
   }
 
-  atualizar(id, changes) {
+  async atualizar(id, changes) {
     if (changes.nome !== undefined && !changes.nome?.trim()) throw new TypeError('nome é obrigatório');
-    const antes = this.repository.get('colaboradores', id);
+    const antes = await this.repository.get('colaboradores', id);
     if (!antes) return null;
-    const depois = this.repository.update('colaboradores', id, {
+    const depois = await this.repository.update('colaboradores', id, {
       ...changes,
       ...(changes.nome ? { nome: changes.nome.trim() } : {})
     });
-    this.registrar({ acao: 'ALTERAR', entidade: 'colaboradores', registroId: id, antes, depois });
+    await this.registrar({ acao: 'ALTERAR', entidade: 'colaboradores', registroId: id, antes, depois });
     return depois;
   }
 
-  excluir(id) {
-    const antes = this.repository.get('colaboradores', id);
+  async excluir(id) {
+    const antes = await this.repository.get('colaboradores', id);
     if (!antes) return false;
-    const removido = this.repository.remove('colaboradores', id);
-    if (removido) this.registrar({ acao: 'EXCLUIR', entidade: 'colaboradores', registroId: id, antes });
+    const removido = await this.repository.remove('colaboradores', id);
+    if (removido) await this.registrar({ acao: 'EXCLUIR', entidade: 'colaboradores', registroId: id, antes });
     return removido;
   }
 }
