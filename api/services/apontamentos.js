@@ -10,12 +10,14 @@ export class ApontamentosService {
     this.actor = actor;
   }
 
-  registrar(evento) {
-    if (this.auditoria) this.auditoria.registrar({ usuarioId: this.actor(), ...evento });
+  async registrar(evento) {
+    if (this.auditoria) return this.auditoria.registrar({ usuarioId: this.actor(), ...evento });
+    return null;
   }
 
-  listar(filtro = {}) {
-    return this.repository.list('apontamentos', (item) => {
+  async listar(filtro = {}) {
+    const records = await this.repository.list('apontamentos');
+    return records.filter((item) => {
       if (filtro.colaboradorId && item.colaboradorId !== filtro.colaboradorId) return false;
       if (filtro.inicio && item.data < filtro.inicio) return false;
       if (filtro.fim && item.data > filtro.fim) return false;
@@ -23,13 +25,13 @@ export class ApontamentosService {
     });
   }
 
-  obter(id) {
+  async obter(id) {
     return this.repository.get('apontamentos', id);
   }
 
-  criar(input) {
+  async criar(input) {
     const result = calculatePoint(input, this.config);
-    const item = this.repository.insert('apontamentos', {
+    const item = await this.repository.insert('apontamentos', {
       id: input.id || makeId(),
       colaboradorId: input.colaboradorId,
       data: input.data,
@@ -39,25 +41,25 @@ export class ApontamentosService {
       ocorrencia: input.ocorrencia || 'Normal',
       ...result
     });
-    this.registrar({ acao: 'CRIAR', entidade: 'apontamentos', registroId: item.id, depois: item });
+    await this.registrar({ acao: 'CRIAR', entidade: 'apontamentos', registroId: item.id, depois: item });
     return item;
   }
 
-  atualizar(id, changes) {
-    const current = this.obter(id);
+  async atualizar(id, changes) {
+    const current = await this.obter(id);
     if (!current) return null;
     const merged = { ...current, ...changes };
     const result = calculatePoint(merged, this.config);
-    const depois = this.repository.update('apontamentos', id, { ...changes, ...result });
-    this.registrar({ acao: 'ALTERAR', entidade: 'apontamentos', registroId: id, antes: current, depois });
+    const depois = await this.repository.update('apontamentos', id, { ...changes, ...result });
+    await this.registrar({ acao: 'ALTERAR', entidade: 'apontamentos', registroId: id, antes: current, depois });
     return depois;
   }
 
-  excluir(id) {
-    const antes = this.obter(id);
+  async excluir(id) {
+    const antes = await this.obter(id);
     if (!antes) return false;
-    const removido = this.repository.remove('apontamentos', id);
-    if (removido) this.registrar({ acao: 'EXCLUIR', entidade: 'apontamentos', registroId: id, antes });
+    const removido = await this.repository.remove('apontamentos', id);
+    if (removido) await this.registrar({ acao: 'EXCLUIR', entidade: 'apontamentos', registroId: id, antes });
     return removido;
   }
 }
