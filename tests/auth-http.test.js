@@ -6,7 +6,7 @@ import { createApi } from '../api/http.js';
 const secret = '01234567890123456789012345678901';
 
 test('login gera token assinado e rota protegida exige autenticacao', async () => {
-  const auth = createAuth({ tokenSecret: secret, users: [{ id: 'u1', nome: 'Ana', email: 'ana@example.com', role: 'colaborador', senhaHash: createAuth({ tokenSecret: secret }).hashPassword('123456') }] });
+  const auth = createAuth({ tokenSecret: secret, users: [{ id: 'u1', nome: 'Ana', email: 'ana@example.com', role: 'gestor', senhaHash: createAuth({ tokenSecret: secret }).hashPassword('123456') }] });
   const api = createApi({ auth, colaboradores: { listar: () => [] }, apontamentos: {}, bancoHoras: {}, fechamentos: {} });
   const login = await api({ method: 'POST', url: '/api/login', body: { email: 'ana@example.com', senha: '123456' } });
   assert.equal(login.status, 200);
