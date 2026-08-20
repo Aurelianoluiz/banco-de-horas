@@ -1,31 +1,38 @@
 const json = async (response) => {
   const data = await response.json().catch(() => null);
-  if (!response.ok) throw new Error(data?.error || `HTTP ${response.status}`);
+  if (!response.ok) {
+    const error = new Error(data?.error || `HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
   return data;
 };
 
+const request = async (path, options = {}) => {
+  const response = await fetch(`/api/${path}`, {
+    credentials: 'same-origin',
+    ...options,
+    headers: {
+      ...(options.body ? { 'content-type': 'application/json' } : {}),
+      ...(options.headers || {})
+    }
+  });
+  return json(response);
+};
+
 export const api = {
-  async list(path) {
-    return json(await fetch(`/api/${path}`));
+  async login(email, senha) {
+    return request('login', { method: 'POST', body: JSON.stringify({ email, senha }) });
   },
-  async get(path, id) {
-    return json(await fetch(`/api/${path}/${encodeURIComponent(id)}`));
+  async list(path) { return request(path); },
+  async get(path, id) { return request(`${path}/${encodeURIComponent(id)}`); },
+  async create(path, payload) { return request(path, { method: 'POST', body: JSON.stringify(payload) }); },
+  async update(path, id, payload) { return request(`${path}/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) }); },
+  async remove(path, id) { return request(`${path}/${encodeURIComponent(id)}`, { method: 'DELETE' }); },
+  async bancoHoras(colaboradorId, competencia) {
+    return request(`banco-horas/${encodeURIComponent(colaboradorId)}/${encodeURIComponent(competencia)}`);
   },
-  async create(path, payload) {
-    return json(await fetch(`/api/${path}`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(payload)
-    }));
-  },
-  async update(path, id, payload) {
-    return json(await fetch(`/api/${path}/${encodeURIComponent(id)}`, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(payload)
-    }));
-  },
-  async remove(path, id) {
-    return json(await fetch(`/api/${path}/${encodeURIComponent(id)}`, { method: 'DELETE' }));
+  async fechar(competencia, colaboradorId) {
+    return request('fechamentos', { method: 'POST', body: JSON.stringify({ competencia, colaboradorId }) });
   }
 };
