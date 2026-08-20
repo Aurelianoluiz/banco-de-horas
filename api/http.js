@@ -13,8 +13,28 @@ export const createApi = ({ colaboradores, apontamentos, bancoHoras, fechamentos
       return item ? json(item) : json({ error: 'Colaborador não encontrado' }, 404);
     }, ['colaboradores', 'read']),
     route('POST', /^\/api\/colaboradores$/, async ({ body }) => json(colaboradores.criar(body), 201), ['colaboradores', 'create']),
+    route('PATCH', /^\/api\/colaboradores\/([^/]+)$/, async ({ params, body }) => {
+      const item = colaboradores.atualizar(params[1], body);
+      return item ? json(item) : json({ error: 'Colaborador não encontrado' }, 404);
+    }, ['colaboradores', 'update']),
+    route('DELETE', /^\/api\/colaboradores\/([^/]+)$/, async ({ params }) => {
+      const removed = colaboradores.excluir(params[1]);
+      return removed ? json({ ok: true }) : json({ error: 'Colaborador não encontrado' }, 404);
+    }, ['colaboradores', 'delete']),
     route('GET', /^\/api\/apontamentos$/, async ({ url }) => json(apontamentos.listar(Object.fromEntries(url.searchParams))), ['apontamentos', 'read']),
+    route('GET', /^\/api\/apontamentos\/([^/]+)$/, async ({ params }) => {
+      const item = apontamentos.obter(params[1]);
+      return item ? json(item) : json({ error: 'Apontamento não encontrado' }, 404);
+    }, ['apontamentos', 'read']),
     route('POST', /^\/api\/apontamentos$/, async ({ body }) => json(apontamentos.criar(body), 201), ['apontamentos', 'create']),
+    route('PATCH', /^\/api\/apontamentos\/([^/]+)$/, async ({ params, body }) => {
+      const item = apontamentos.atualizar(params[1], body);
+      return item ? json(item) : json({ error: 'Apontamento não encontrado' }, 404);
+    }, ['apontamentos', 'update']),
+    route('DELETE', /^\/api\/apontamentos\/([^/]+)$/, async ({ params }) => {
+      const removed = apontamentos.excluir(params[1]);
+      return removed ? json({ ok: true }) : json({ error: 'Apontamento não encontrado' }, 404);
+    }, ['apontamentos', 'delete']),
     route('GET', /^\/api\/banco-horas\/([^/]+)\/([^/]+)$/, async ({ params }) => json(bancoHoras.resumo(params[1], params[2], 0)), ['bancoHoras', 'read']),
     route('POST', /^\/api\/fechamentos$/, async ({ body }) => json(fechamentos.fechar(body), 201), ['fechamentos', 'approve'])
   ];
