@@ -6,7 +6,7 @@ const pool = () => ({
   calls: [],
   async query(text, values) {
     this.calls.push({ text, values });
-    return { rows: [{ id: '1', nome: 'Maria' }], rowCount: 1 };
+    return { rows: [{ id: '1', nome: 'Maria', colaborador_id: 'col-1', horas_trabalhadas: 480 }], rowCount: 1 };
   }
 });
 
@@ -26,6 +26,22 @@ test('PostgresRepository valida CRUD e usa parâmetros', async () => {
   assert.deepEqual(fakePool.calls[2].values, ['1', 'Maria']);
   assert.deepEqual(fakePool.calls[3].values, ['1', 'Maria Silva']);
   assert.deepEqual(fakePool.calls[4].values, ['1']);
+});
+
+test('PostgresRepository converte camelCase para snake_case e linhas para camelCase', async () => {
+  const fakePool = pool();
+  const repo = new PostgresRepository(fakePool);
+
+  const inserted = await repo.insert('apontamentos', {
+    id: 'apt-1',
+    colaboradorId: 'col-1',
+    horasTrabalhadas: 480
+  });
+
+  assert.match(fakePool.calls[0].text, /"colaborador_id"/);
+  assert.match(fakePool.calls[0].text, /"horas_trabalhadas"/);
+  assert.equal(inserted.colaboradorId, 'col-1');
+  assert.equal(inserted.horasTrabalhadas, 480);
 });
 
 test('PostgresRepository rejeita identificador SQL inválido', async () => {
