@@ -59,7 +59,8 @@ export function analyzeApontamentoRows(rows) {
   const records = [];
   const name = text(valueAt(rows, 3, 3));
   const salary = Number(valueAt(rows, 5, 8) || 0);
-  const monthlyMinutes = timeToMinutes(valueAt(rows, 5, 14)) ?? Number(valueAt(rows, 5, 14) || 0) * 60;
+  const monthlyRaw = valueAt(rows, 5, 14);
+  const monthlyMinutes = typeof monthlyRaw === 'number' ? monthlyRaw * 60 : (timeToMinutes(monthlyRaw) ?? 0);
   const segQui = timeToMinutes(valueAt(rows, 7, 14));
   const sexta = timeToMinutes(valueAt(rows, 9, 14));
   const sabado = timeToMinutes(valueAt(rows, 9, 9));
