@@ -1,0 +1,43 @@
+name: PostgreSQL Integration
+
+on:
+  pull_request:
+  push:
+    branches: [ main, feat/xls-importacao ]
+
+jobs:
+  postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: banco_de_horas_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d banco_de_horas_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Apply PostgreSQL migrations
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h 127.0.0.1 -U postgres -d banco_de_horas_test -f database/migrations/001_initial.sql
+          psql -h 127.0.0.1 -U postgres -d banco_de_horas_test -f database/migrations/002_indexes.sql
+      - name: Run tests
+        env:
+          DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/banco_de_horas_test
+          AUTH_SECRET: test-secret-with-at-least-32-characters-long
+        run: npm test
