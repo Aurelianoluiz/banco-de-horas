@@ -33,6 +33,7 @@ jobs:
       - name: Validate application files
         run: |
           test -f server.js
+          test -f web/index-compat.js
           test -f api/application.js
           test -f api/http.js
           test -f api/repository-postgres.js
@@ -67,6 +68,7 @@ jobs:
           grep -q 'TLS_CERT_FILE' .env.example
           grep -q 'TLS_KEY_FILE' .env.example
           grep -q 'app-shell.html' server.js
+          grep -q 'index-compat.js' server.js
       - name: Repository summary
         run: |
           echo "Banco de Horas CI OK"
