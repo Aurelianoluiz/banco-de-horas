@@ -49,6 +49,7 @@ jobs:
           test -f api/services/ajustes.js
           test -f api/services/relatorios.js
           test -f tests/load-smoke.mjs
+          test -f tests/permission-http-smoke.mjs
       - name: Check JavaScript syntax
         run: npm run check
       - name: Run automated tests
@@ -138,11 +139,14 @@ jobs:
           node -e "const fs=require('fs'); const j=JSON.parse(fs.readFileSync('/tmp/colaboradores.json','utf8')); if(!Array.isArray(j) || j.length<1) process.exit(1)"
       - name: Capture homologation collaborator
         run: |
-          node -e "const fs=require('fs'); const j=JSON.parse(fs.readFileSync('/tmp/colaboradores.json','utf8')); const c=j.find(x=>x.email==='colaborador.homologacao@bancodehoras.local') || j.find(x=>x.nome==='Colaborador Homologação'); if(!c) process.exit(1); fs.writeFileSync('/tmp/colaborador-id',String(c.id))"
+          node -e "const fs=require('fs'); const j=JSON.parse(fs.readFileSync('/tmp/colaboradores.json','utf8')); const c=j.find(x=>x.nome==='Colaborador Homologação'); if(!c) process.exit(1); fs.writeFileSync('/tmp/colaborador-id',String(c.id))"
+          echo "HOMOLOG_COLLABORATOR_ID=$(cat /tmp/colaborador-id)" >> "$GITHUB_ENV"
       - name: Verify protected API rejects anonymous requests
         run: |
           status=$(curl --silent --show-error --output /tmp/anonymous.json --write-out '%{http_code}' http://127.0.0.1:3000/api/colaboradores)
           test "$status" = "401"
+      - name: Verify role permission matrix
+        run: node tests/permission-http-smoke.mjs
       - name: Verify Banco de Horas
         run: |
           token=$(cat /tmp/token); cid=$(cat /tmp/colaborador-id)
