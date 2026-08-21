@@ -4,10 +4,10 @@ Este documento centraliza a configuração local do projeto. Existem dois modos 
 
 ## 1. Modo LOCAL — sem SQL e sem Docker
 
-Use este modo para testar a interface e os fluxos legados que usam `localStorage`. Ele não precisa de PostgreSQL, Docker Desktop ou Node.js.
+Use este modo para testar a interface que usa armazenamento local. Ele não precisa de PostgreSQL, Docker Desktop ou Node.js.
 
 ```text
-start-local.bat
+scripts/start-local.bat
   -> menu
   -> [2] LOCAL
   -> servidor TCP local em 127.0.0.1:3000
@@ -21,7 +21,7 @@ Abra:
 http://127.0.0.1:3000/
 ```
 
-O servidor LOCAL não usa `HttpListener`/HTTP.sys. Isso evita o HTTP 403 observado com `localhost` quando a URL ACL do Windows não estava configurada.
+O servidor LOCAL não usa `HttpListener`/HTTP.sys. Isso evita o HTTP 403 observado quando a URL ACL do Windows não estava configurada.
 
 ## 2. Modo SQL — PostgreSQL + aplicação completa
 
@@ -66,14 +66,14 @@ COLABORADOR
 colaborador.homologacao@bancodehoras.local
 ```
 
-As senhas são geradas/definidas somente no ambiente local e nunca são gravadas no Git.
+As senhas são definidas somente no ambiente local e nunca são gravadas no Git.
 
 ## 3. Inicialização com um clique
 
-No Windows:
+No Windows, na raiz do repositório:
 
 ```text
-start-local.bat
+scripts/start-local.bat
 ```
 
 Menu:
@@ -84,15 +84,13 @@ Menu:
 [0] Sair
 ```
 
-Os scripts PowerShell correspondentes ficam em `scripts/`.
-
 ## 4. Parar
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\stop-local.ps1
 ```
 
-O comando encerra o servidor LOCAL e, quando escolhido, derruba a stack SQL.
+O comando encerra o servidor LOCAL e tenta derrubar a stack SQL.
 
 ## 5. Diagnóstico do Docker
 
@@ -108,13 +106,13 @@ ou não conseguir conectar em `docker_engine`, execute:
 powershell -ExecutionPolicy Bypass -File .\scripts\diagnostico-docker.ps1
 ```
 
-O diagnóstico verifica:
+O diagnóstico salva `.local/docker-diagnostic.txt` e verifica:
 
 - `docker version`
 - `docker info`
-- estado do Docker Desktop
-- WSL (`wsl --status`)
-- memória/virtualização reportadas pelo ambiente quando disponíveis
+- `docker context ls`
+- `wsl --status`
+- processos do Docker Desktop
 
 ## 6. Erro HTTP 403 no modo LOCAL
 
@@ -130,23 +128,24 @@ O sidebar oficial está no shell modular. Para `index.html`, `web/index-compat.j
 - referências DOM sem depender de variáveis globais implícitas do navegador;
 - fallback do menu;
 - layout responsivo;
-- `margin-left` compatível com a largura do sidebar.
+- largura/margem compatíveis entre sidebar e conteúdo.
 
 ## 8. Estrutura relevante
 
 ```text
-app-shell.html                 entrada principal
-index.html                     compatibilidade/legado
-server.js                      servidor SQL/produção
+app-shell.html                  entrada principal
+index.html                      compatibilidade/legado
+server.js                       servidor SQL/produção
+scripts/start-local.bat         launcher 1 clique
 scripts/start-local.ps1        menu SQL/LOCAL
-scripts/server-local.ps1       servidor HTTP LOCAL via TcpListener
-scripts/stop-local.ps1         parada
-scripts/diagnostico-docker.ps1 diagnóstico
-web/index-compat.js            compatibilidade do sidebar
-Dockerfile                     imagem Node
- docker-compose.homologacao.yml PostgreSQL + aplicação
- database/schema.sql            banco
- database/seed-homologacao.js  dados fictícios
+scripts/server-local.ps1        servidor HTTP LOCAL via TcpListener
+scripts/stop-local.ps1          parada
+scripts/diagnostico-docker.ps1  diagnóstico Docker
+web/index-compat.js             compatibilidade do sidebar
+Dockerfile                      imagem Node
+docker-compose.homologacao.yml  PostgreSQL + aplicação
+database/schema.sql             banco
+database/seed-homologacao.js    dados fictícios
 ```
 
 ## 9. Verificações
@@ -173,6 +172,7 @@ Resultado esperado:
 ## 10. Regras de operação
 
 - Não grave senhas, `DATABASE_URL` reais ou `AUTH_TOKEN_SECRET` reais no Git.
+- `.local/` é ignorado pelo Git e pode conter segredos/runtime.
 - O modo LOCAL e o modo SQL têm armazenamento separado.
 - O modo LOCAL não é fonte operacional de produção.
 - O modo SQL é o caminho recomendado para homologação funcional completa.
