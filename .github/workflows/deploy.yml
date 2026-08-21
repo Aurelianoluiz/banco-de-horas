@@ -9,29 +9,35 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: true
 
 jobs:
-  deploy:
+  verify-production-contract:
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          path: .
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm install
+      - name: Validate production entrypoint
+        run: |
+          test -f server.js
+          test -f app-shell.html
+          test -f .env.example
+          npm run check
+          npm test
+      - name: Publish deployment manifest
+        run: |
+          mkdir -p deploy
+          cat > deploy/README.md <<'EOF'
+          # Banco de Horas — deployment contract
+
+          This application requires a Node.js runtime and PostgreSQL. The web shell is served by `server.js`.
+          GitHub Pages is not a production target for this full-stack application because it cannot execute the Node.js API.
+          Configure DATABASE_URL and AUTH_TOKEN_SECRET in the target hosting environment, then run `npm install && npm start`.
+          EOF
