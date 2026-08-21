@@ -13,7 +13,7 @@ const createCrudService = (repository, table, { mapCreate, mapUpdate, validateCr
   async listar(filters = {}) { return filterRows(await repository.list(table), filters); },
   async obter(id) { return repository.get(table, id); },
   async criar(input) { validateCreate(input); return repository.insert(table, mapCreate(input)); },
-  async atualizar(id, input) { validateUpdate(input); return repository.update(table, id, mapUpdate(input)); },
+  async atualizar(id, input) { const current = await repository.get(table, id); if (!current) return null; const merged = { ...current, ...input }; validateUpdate(merged); return repository.update(table, id, mapUpdate(input)); },
   async excluir(id) { return repository.remove(table, id); }
 });
 
@@ -27,6 +27,7 @@ export const createFeriasService = (repository) => createCrudService(repository,
   validateUpdate(data) {
     if (data.inicio) validateDate(data.inicio, 'Data inicial');
     if (data.fim) validateDate(data.fim, 'Data final');
+    if (data.inicio && data.fim && data.inicio > data.fim) throw new TypeError('Período de férias inválido');
     validateStatus(data.status, ['Programada', 'Solicitada', 'Aprovada', 'Cancelada'], 'Status');
   },
   mapCreate(data) { return { id: data.id || makeId(), colaboradorId: data.colaboradorId, inicio: data.inicio, fim: data.fim, dias: data.dias ?? 0, status: data.status || 'Programada' }; },
