@@ -1,4 +1,6 @@
-const makeId = () => `col-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+import { randomUUID } from 'node:crypto';
+
+const makeId = () => randomUUID();
 
 export class ColaboradoresService {
   constructor(repository, auditoria = null, actor = () => null) {
@@ -7,7 +9,7 @@ export class ColaboradoresService {
     this.actor = actor;
   }
 
-  registrar(evento) {
+  async registrar(evento) {
     if (this.auditoria) return this.auditoria.registrar({ usuarioId: this.actor(), ...evento });
     return null;
   }
@@ -21,9 +23,7 @@ export class ColaboradoresService {
     });
   }
 
-  async obter(id) {
-    return this.repository.get('colaboradores', id);
-  }
+  async obter(id) { return this.repository.get('colaboradores', id); }
 
   async criar(input) {
     if (!input?.nome?.trim()) throw new TypeError('nome é obrigatório');
@@ -31,9 +31,10 @@ export class ColaboradoresService {
       id: input.id || makeId(),
       nome: input.nome.trim(),
       salario: input.salario ?? null,
-      jornada: input.jornada || null,
+      cargaSegQui: input.cargaSegQui || input.jornada || '09:00',
+      cargaSexta: input.cargaSexta || '08:00',
       tolerancia: input.tolerancia || '00:15',
-      status: input.status || 'ativo'
+      ativo: input.ativo ?? input.status !== 'inativo'
     });
     await this.registrar({ acao: 'CRIAR', entidade: 'colaboradores', registroId: item.id, depois: item });
     return item;
