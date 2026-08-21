@@ -48,25 +48,33 @@ const readBody = async (req) => {
   return Buffer.concat(chunks).toString('utf8');
 };
 const server = createServer(async (req, res) => {
+  const startedAt = process.hrtime.bigint();
+  const send = (status, headers, body) => {
+    const elapsedMs = Number(process.hrtime.bigint() - startedAt) / 1e6;
+    res.writeHead(status, { ...securityHeaders, ...headers, 'x-response-time-ms': elapsedMs.toFixed(2), 'server-timing': `app;dur=${elapsedMs.toFixed(2)}` });
+    res.end(body);
+  };
   try {
-    if (req.url?.startsWith('/health')) { res.writeHead(200, { ...securityHeaders, 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }); res.end(JSON.stringify({ status: 'ok' })); return; }
-    if (req.url?.startsWith('/api/')) {
+    const pathname = new URL(req.url || '/', 'http://localhost').pathname;
+    if (pathname === '/health') { send(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }, JSON.stringify({ status: 'ok' })); return; }
+    if (pathname.startsWith('/api/')) {
       const raw = await readBody(req); let body = {};
-      if (raw) { try { body = JSON.parse(raw); } catch { res.writeHead(400, { ...securityHeaders, 'content-type': 'application/json; charset=utf-8' }); res.end(JSON.stringify({ error: 'JSON inválido' })); return; } }
-      if (req.method === 'POST' && new URL(req.url, 'http://localhost').pathname === '/api/login') {
-        const ip = clientAddress(req); if (!checkLoginRateLimit(ip, body.email)) { res.writeHead(429, { ...securityHeaders, 'content-type': 'application/json; charset=utf-8' }); res.end(JSON.stringify({ error: 'Muitas tentativas. Tente novamente mais tarde.' })); return; }
+      if (raw) { try { body = JSON.parse(raw); } catch { send(400, { 'content-type': 'application/json; charset=utf-8' }, JSON.stringify({ error: 'JSON inválido' })); return; } }
+      if (req.method === 'POST' && pathname === '/api/login') {
+        const ip = clientAddress(req); if (!checkLoginRateLimit(ip, body.email)) { send(429, { 'content-type': 'application/json; charset=utf-8' }, JSON.stringify({ error: 'Muitas tentativas. Tente novamente mais tarde.' })); return; }
       }
       const auth = String(req.headers.authorization || ''); const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
-      const result = await api({ method: req.method, url: req.url, body, token }); res.writeHead(result.status || 200, { ...securityHeaders, ...(result.headers || {}) }); res.end(result.body); return;
+      const result = await api({ method: req.method, url: req.url, body, token }); send(result.status || 200, result.headers || {}, result.body); return;
     }
-    if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405, { ...securityHeaders, allow: 'GET, HEAD' }); res.end(); return; }
-    const asset = await staticFile(new URL(req.url || '/', 'http://localhost').pathname);
-    if (!asset) { res.writeHead(404, { ...securityHeaders, 'content-type': 'text/plain; charset=utf-8' }); res.end('Not Found'); return; }
-    res.writeHead(200, { ...securityHeaders, 'content-type': asset.type, 'cache-control': asset.type.includes('javascript') || asset.type.includes('text/css') ? 'no-cache' : 'public, max-age=3600' });
-    if (req.method === 'HEAD') { res.end(); return; } res.end(asset.body);
-  } catch (error) { const status = Number(error.statusCode) || 500; console.error(error); res.writeHead(status, { ...securityHeaders, 'content-type': 'application/json; charset=utf-8' }); res.end(JSON.stringify({ error: status === 413 ? 'Payload muito grande' : 'Erro interno do servidor' })); }
+    if (req.method !== 'GET' && req.method !== 'HEAD') { send(405, { allow: 'GET, HEAD' }, ''); return; }
+    const asset = await staticFile(pathname);
+    if (!asset) { send(404, { 'content-type': 'text/plain; charset=utf-8' }, 'Not Found'); return; }
+    const headers = { 'content-type': asset.type, 'cache-control': asset.type.includes('javascript') || asset.type.includes('text/css') ? 'no-cache' : 'public, max-age=3600' };
+    if (req.method === 'HEAD') { send(200, headers, ''); return; } send(200, headers, asset.body);
+  } catch (error) { const status = Number(error.statusCode) || 500; console.error(error); send(status, { 'content-type': 'application/json; charset=utf-8' }, JSON.stringify({ error: status === 413 ? 'Payload muito grande' : 'Erro interno do servidor' })); }
 });
 const cleanupTimer = setInterval(cleanupLoginBuckets, LOGIN_WINDOW_MS); cleanupTimer.unref();
 const shutdown = async (signal) => { clearInterval(cleanupTimer); server.close(async () => { await pool.end(); process.exit(signal === 'SIGINT' ? 130 : 143); }); };
-process.on('SIGINT', () => shutdown('SIGINT')); process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
 server.listen(port, '0.0.0.0', () => console.log(`Banco de Horas ouvindo na porta ${port}`));
