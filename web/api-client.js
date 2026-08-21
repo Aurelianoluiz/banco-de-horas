@@ -46,7 +46,7 @@ export const api = {
   async update(path, id, payload) { return request(`${path}/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) }); },
   async remove(path, id) { return request(path && id != null ? `${path}/${encodeURIComponent(id)}` : path, { method: 'DELETE' }); },
   async bancoHoras(colaboradorId, competencia) { return request(`banco-horas/${encodeURIComponent(colaboradorId)}/${encodeURIComponent(competencia)}`); },
-  async fechar(competencia, colaboradorId) { return request('fechamentos', { method: 'POST', body: JSON.stringify({ competencia, colaboradorId }) }); },
+  async fechar(competencia, colaboradorId, saldoAnterior = 0) { return request('fechamentos', { method: 'POST', body: JSON.stringify({ competencia, colaboradorId, saldoAnterior }) }); },
   async relatorio(tipo, params = {}) { return request(reportPath('', tipo, params).replace('relatorios//', 'relatorios/')); },
   async exportarRelatorio(tipo, params = {}) { return binaryRequest(reportPath('export', tipo, params)); },
   async exportarRelatorioPdf(tipo, params = {}) { return binaryRequest(reportPath('pdf', tipo, params)); }
