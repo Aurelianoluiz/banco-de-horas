@@ -1,12 +1,5 @@
 const json = (data, status = 200) => ({ status, headers: { 'content-type': 'application/json; charset=utf-8' }, body: JSON.stringify(data) });
-const binary = (data, contentType, status = 200, filename = null) => ({
-  status,
-  headers: {
-    'content-type': contentType,
-    ...(filename ? { 'content-disposition': `attachment; filename="${filename.replace(/"/g, '')}"` } : {})
-  },
-  body: Buffer.isBuffer(data) ? data : Buffer.from(data)
-});
+const binary = (data, contentType, status = 200, filename = null) => ({ status, headers: { 'content-type': contentType, ...(filename ? { 'content-disposition': `attachment; filename="${filename.replace(/"/g, '')}"` } : {}) }, body: Buffer.isBuffer(data) ? data : Buffer.from(data) });
 const route = (method, pattern, handler, auth = null) => ({ method, pattern, handler, auth });
 const crudRoutes = (base, service, module) => [
   route('GET', new RegExp(`^/api/${base}$`), async ({ url }) => json(await service.listar(Object.fromEntries(url.searchParams))), [module, 'read']),
@@ -16,7 +9,7 @@ const crudRoutes = (base, service, module) => [
   route('DELETE', new RegExp(`^/api/${base}/([^/]+)$`), async ({ params }) => (await service.excluir(params[1])) ? json({ ok: true }) : json({ error: 'Registro não encontrado' }, 404), [module, 'delete'])
 ];
 
-export const createApi = ({ colaboradores, apontamentos, bancoHoras, fechamentos, ferias, folgas, feriados, relatorios, exportacao, auth }) => {
+export const createApi = ({ colaboradores, apontamentos, bancoHoras, fechamentos, ferias, folgas, feriados, relatorios, exportacao, exportacaoPdf, auth }) => {
   const routes = [
     route('POST', /^\/api\/login$/, async ({ body }) => { const result = await auth.login(body); return result ? json(result) : json({ error: 'Credenciais inválidas' }, 401); }),
     ...crudRoutes('colaboradores', colaboradores, 'colaboradores'),
@@ -33,25 +26,27 @@ export const createApi = ({ colaboradores, apontamentos, bancoHoras, fechamentos
     route('GET', /^\/api\/relatorios\/fechamento$/, async ({ url }) => json(await relatorios.fechamento({ colaboradorId: url.searchParams.get('colaboradorId') || undefined, competencia: url.searchParams.get('competencia') })), ['relatorios', 'read']),
     route('GET', /^\/api\/relatorios\/atrasos$/, async ({ url }) => json(await relatorios.atrasos({ colaboradorId: url.searchParams.get('colaboradorId') || undefined, competencia: url.searchParams.get('competencia') })), ['relatorios', 'read']),
     route('GET', /^\/api\/relatorios\/export\/([a-z-]+)$/, async ({ params, url }) => {
-      const tipo = params[1];
-      const allowed = new Set(['espelho-ponto', 'banco-horas', 'ferias', 'folgas', 'fechamento', 'atrasos']);
+      const tipo = params[1]; const allowed = new Set(['espelho-ponto', 'banco-horas', 'ferias', 'folgas', 'fechamento', 'atrasos']);
       if (!allowed.has(tipo)) return json({ error: 'Relatório não suportado para exportação' }, 400);
       const paramsObject = Object.fromEntries(url.searchParams);
-      const buffer = await exportacao.xlsx(tipo === 'espelho-ponto' ? 'espelhoPonto' : tipo.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase()), paramsObject);
+      const serviceMethod = tipo === 'espelho-ponto' ? 'espelhoPonto' : tipo.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+      const buffer = await exportacao.xlsx(serviceMethod, paramsObject);
       return binary(buffer, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 200, `relatorio-${tipo}.xlsx`);
+    }, ['relatorios', 'read']),
+    route('GET', /^\/api\/relatorios\/pdf\/([a-z-]+)$/, async ({ params, url }) => {
+      const tipo = params[1]; const allowed = new Set(['espelho-ponto', 'banco-horas', 'ferias', 'folgas', 'fechamento', 'atrasos']);
+      if (!allowed.has(tipo)) return json({ error: 'Relatório não suportado para PDF' }, 400);
+      const paramsObject = Object.fromEntries(url.searchParams);
+      const serviceMethod = tipo === 'espelho-ponto' ? 'espelhoPonto' : tipo.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+      const buffer = await exportacaoPdf.pdf(serviceMethod, paramsObject);
+      return binary(buffer, 'application/pdf', 200, `relatorio-${tipo}.pdf`);
     }, ['relatorios', 'read'])
   ];
 
   return async ({ method = 'GET', url: rawUrl = '/', body = {}, token = null } = {}) => {
-    const url = new URL(rawUrl, 'http://localhost');
-    const match = routes.find((item) => item.method === method && item.pattern.test(url.pathname));
-    if (!match) return json({ error: 'Rota não encontrada' }, 404);
-    const params = match.pattern.exec(url.pathname);
-    try {
-      const identity = match.auth ? await auth.authenticate(token) : null;
-      if (match.auth && !identity) return json({ error: 'Não autenticado' }, 401);
-      if (match.auth && !(await auth.authorize(identity, match.auth[0], match.auth[1]))) return json({ error: 'Acesso negado' }, 403);
-      return await match.handler({ url, body, params, identity });
-    } catch (error) { return json({ error: error.message }, error instanceof TypeError ? 400 : 422); }
+    const url = new URL(rawUrl, 'http://localhost'); const match = routes.find((item) => item.method === method && item.pattern.test(url.pathname));
+    if (!match) return json({ error: 'Rota não encontrada' }, 404); const params = match.pattern.exec(url.pathname);
+    try { const identity = match.auth ? await auth.authenticate(token) : null; if (match.auth && !identity) return json({ error: 'Não autenticado' }, 401); if (match.auth && !(await auth.authorize(identity, match.auth[0], match.auth[1]))) return json({ error: 'Acesso negado' }, 403); return await match.handler({ url, body, params, identity }); }
+    catch (error) { return json({ error: error.message }, error instanceof TypeError ? 400 : 422); }
   };
 };
