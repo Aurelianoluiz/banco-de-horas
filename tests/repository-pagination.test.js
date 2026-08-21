@@ -11,7 +11,7 @@ test('MemoryRepository aplica limit e offset e respeita teto de 500', () => {
   assert.equal(repository.list('colaboradores', { limit: 9999 }).length, 500);
 });
 
-test('PostgresRepository separa filtros de paginação e usa LIMIT/OFFSET parametrizados', async () => {
+test('PostgresRepository separa filtros de paginação, ordena e usa LIMIT/OFFSET parametrizados', async () => {
   const calls = [];
   const repository = new PostgresRepository({
     query: async (text, values) => {
@@ -21,6 +21,6 @@ test('PostgresRepository separa filtros de paginação e usa LIMIT/OFFSET parame
   });
   await repository.list('colaboradores', { ativo: true, limit: 20, offset: 40 });
   assert.equal(calls.length, 1);
-  assert.match(calls[0].text, /WHERE "ativo" = \$1 LIMIT \$2 OFFSET \$3/);
+  assert.match(calls[0].text, /WHERE "ativo" = \$1 ORDER BY nome, id LIMIT \$2 OFFSET \$3/);
   assert.deepEqual(calls[0].values, [true, 20, 40]);
 });
