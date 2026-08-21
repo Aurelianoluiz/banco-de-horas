@@ -26,12 +26,14 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Validate HTML
+      - name: Validate web entrypoint
         run: |
-          test -f index.html
+          test -f app-shell.html
           test -f login.html
-          grep -q '<html' index.html
-          grep -q 'Banco de Horas' index.html
+          grep -q '<html' app-shell.html
+          grep -q 'Banco de Horas' app-shell.html
+          test -f manifest.webmanifest
+          test -f service-worker.js
 
       - name: Validate application files
         run: |
@@ -45,6 +47,10 @@ jobs:
           test -f api/services/auditoria.js
           test -f api/services/fechamento.js
           test -f api/services/ausencias.js
+          test -f api/services/banco-horas.js
+          test -f api/services/configuracoes.js
+          test -f api/services/atestados.js
+          test -f api/services/ajustes.js
           test -f api/services/relatorios.js
 
       - name: Check JavaScript syntax
@@ -53,12 +59,12 @@ jobs:
       - name: Run automated tests
         run: npm test
 
-      - name: Check required project sections
+      - name: Validate security and deployment contract
         run: |
-          grep -q 'Banco de Horas' index.html
-          grep -q 'Férias' index.html
-          grep -q 'Folgas' index.html
-          grep -q 'Colaboradores' index.html
+          test -f .env.example
+          grep -q 'AUTH_TOKEN_SECRET' .env.example
+          grep -q 'DATABASE_URL' .env.example
+          grep -q 'app-shell.html' server.js
 
       - name: Repository summary
         run: |
