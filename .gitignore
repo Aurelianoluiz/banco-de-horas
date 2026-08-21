@@ -1,0 +1,16 @@
+# Local runtime / secrets
+.local/
+.env
+.env.local
+.env.sql
+
+# Backups / dumps locais
+backups/
+*.dump
+*.sql.gz
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
