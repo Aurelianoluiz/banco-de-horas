@@ -20,16 +20,6 @@ const USERS = [
   { id: '00000000-0000-4000-8000-000000000003', nome: 'Colaborador Homologação', email: 'colaborador.homologacao@bancodehoras.local', perfil: 'colaborador', password: process.env.SEED_COLABORADOR_PASSWORD }
 ];
 
-const COLLABORATOR = {
-  id: '10000000-0000-4000-8000-000000000001',
-  usuarioId: USERS[2].id,
-  nome: 'Colaborador Homologação',
-  salario: 3500,
-  cargaSegQuiMin: 540,
-  cargaSextaMin: 480,
-  toleranciaMin: 15
-};
-
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 2 });
 
 const query = (text, values = []) => pool.query(text, values);
@@ -48,11 +38,23 @@ const main = async () => {
       );
     }
 
+    const usersByEmail = {};
+    for (const user of USERS) {
+      const result = await client.query('SELECT id FROM usuarios WHERE lower(email) = lower($1) LIMIT 1', [user.email]);
+      if (!result.rows[0]) throw new Error(`Usuário de seed não encontrado: ${user.email}`);
+      usersByEmail[user.email] = result.rows[0].id;
+    }
+
+    const adminId = usersByEmail[USERS[0].email];
+    const gestorId = usersByEmail[USERS[1].email];
+    const colaboradorUserId = usersByEmail[USERS[2].email];
+
+    const collaboratorId = '10000000-0000-4000-8000-000000000001';
     await client.query(
       `INSERT INTO colaboradores (id, usuario_id, nome, salario, carga_seg_qui_min, carga_sexta_min, tolerancia_min, ativo)
        VALUES ($1, $2, $3, $4, $5, $6, $7, true)
        ON CONFLICT (id) DO NOTHING`,
-      [COLLABORATOR.id, COLLABORATOR.usuarioId, COLLABORATOR.nome, COLLABORATOR.salario, COLLABORATOR.cargaSegQuiMin, COLLABORATOR.cargaSextaMin, COLLABORATOR.toleranciaMin]
+      [collaboratorId, colaboradorUserId, 'Colaborador Homologação', 3500, 540, 480, 15]
     );
 
     const collaboratorRows = [
@@ -68,7 +70,7 @@ const main = async () => {
         `INSERT INTO apontamentos (id, colaborador_id, data, entrada_min, intervalo_min, saida_min, ocorrencia, minutos_trabalhados, minutos_previstos, saldo_min, extra_min, observacao, aprovado)
          VALUES ($1, $2, $3, $4, $5, $6, 'Normal', $7, $8, $9, $10, $11, true)
          ON CONFLICT (colaborador_id, data) DO NOTHING`,
-        [randomUUID(), COLLABORATOR.id, date, entradaMin, intervaloMin, saidaMin, trabalhados, previstos, saldo, Math.max(0, saldo), saldo < 0 ? 'Teste de débito para homologação' : null]
+        [randomUUID(), collaboratorId, date, entradaMin, intervaloMin, saidaMin, trabalhados, previstos, saldo, Math.max(0, saldo), saldo < 0 ? 'Teste de débito para homologação' : null]
       );
     }
 
@@ -83,35 +85,35 @@ const main = async () => {
       `INSERT INTO ferias (id, colaborador_id, inicio, fim, dias, status)
        VALUES ($1, $2, '2026-08-24', '2026-08-25', 2, 'Programada')
        ON CONFLICT (id) DO NOTHING`,
-      [randomUUID(), COLLABORATOR.id]
+      [randomUUID(), collaboratorId]
     );
 
     await client.query(
       `INSERT INTO folgas (id, colaborador_id, data, motivo, origem, status)
        VALUES ($1, $2, '2026-08-26', 'Folga compensatória de homologação', 'Banco de horas', 'Aprovada')
        ON CONFLICT (colaborador_id, data) DO NOTHING`,
-      [randomUUID(), COLLABORATOR.id]
+      [randomUUID(), collaboratorId]
     );
 
     await client.query(
       `INSERT INTO atestados (id, colaborador_id, inicio, fim, motivo, status)
        VALUES ($1, $2, '2026-08-27', '2026-08-27', 'Atestado de homologação', 'Pendente')
        ON CONFLICT (id) DO NOTHING`,
-      [randomUUID(), COLLABORATOR.id]
+      [randomUUID(), collaboratorId]
     );
 
     await client.query(
       `INSERT INTO ajustes (id, colaborador_id, data, minutos, motivo, usuario_id)
        VALUES ($1, $2, '2026-08-28', 15, 'Ajuste positivo de homologação', $3)
        ON CONFLICT (id) DO NOTHING`,
-      [randomUUID(), COLLABORATOR.id, USERS[1].id]
+      [randomUUID(), collaboratorId, gestorId]
     );
 
     await client.query(
       `INSERT INTO configuracoes (chave, valor, atualizado_por)
        VALUES ('toleranciaMin', '15'::jsonb, $1)
        ON CONFLICT (chave) DO NOTHING`,
-      [USERS[0].id]
+      [adminId]
     );
 
     await client.query('COMMIT');
