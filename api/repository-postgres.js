@@ -10,6 +10,7 @@ const TABLE_MAPPERS = {
   atestados: { toRow(record) { return { id: record.id, colaborador_id: record.colaboradorId, inicio: record.inicio, fim: record.fim, motivo: record.motivo ?? null, status: record.status ?? 'Pendente' }; }, fromRow(row) { return { ...row, colaboradorId: row.colaborador_id }; } },
   configuracoes: { toRow(record) { return { chave: record.chave, valor: record.valor, atualizado_por: record.atualizadoPor ?? null, atualizado_em: record.atualizadoEm ?? new Date().toISOString() }; }, fromRow(row) { return { ...row, atualizadoPor: row.atualizado_por, atualizadoEm: row.atualizado_em }; } }
 };
+const ORDER_BY = { colaboradores: 'nome, id', apontamentos: 'data, id', feriados: 'data, id', ferias: 'inicio, id', folgas: 'data, id', atestados: 'inicio, id', ajustes: 'data, id', fechamentos: 'competencia, id', auditoria: 'criado_em, id', configuracoes: 'chave' };
 const toMinutes = (value = '00:00') => { if (typeof value === 'number' && Number.isFinite(value)) return Math.round(value); const match = String(value).trim().match(/^(\d{1,3}):(\d{2})$/); if (!match) throw new TypeError(`Tempo inválido: ${value}`); return Number(match[1]) * 60 + Number(match[2]); };
 const nullableMinutes = (value) => value == null || value === '' ? null : toMinutes(value);
 const toTime = (value = 0) => { const n = Math.max(0, Math.round(Number(value) || 0)); return `${String(Math.floor(n / 60)).padStart(2, '0')}:${String(n % 60).padStart(2, '0')}`; };
@@ -29,7 +30,8 @@ export class PostgresRepository {
     const { limit, offset } = parsePage(typeof options === 'object' && options !== null ? options : {});
     values.push(limit, offset);
     const limitParam = `$${values.length - 1}`; const offsetParam = `$${values.length}`;
-    const result = await this.query(`SELECT * FROM ${safeIdentifier(table)}${where ? ` WHERE ${where}` : ''} LIMIT ${limitParam} OFFSET ${offsetParam}`, values); return result.rows.map((row) => mapFromRow(table, row));
+    const orderBy = ORDER_BY[table] || 'id';
+    const result = await this.query(`SELECT * FROM ${safeIdentifier(table)}${where ? ` WHERE ${where}` : ''} ORDER BY ${orderBy} LIMIT ${limitParam} OFFSET ${offsetParam}`, values); return result.rows.map((row) => mapFromRow(table, row));
   }
   async get(table, id) { const key = table === 'configuracoes' ? 'chave' : 'id'; const result = await this.query(`SELECT * FROM ${safeIdentifier(table)} WHERE ${safeIdentifier(key)} = $1 LIMIT 1`, [id]); return result.rows[0] ? mapFromRow(table, result.rows[0]) : null; }
   async findById(table, id) { return this.get(table, id); }
