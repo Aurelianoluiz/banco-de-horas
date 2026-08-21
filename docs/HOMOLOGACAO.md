@@ -1,6 +1,20 @@
 # Homologação — Banco de Horas
 
-## Pré-requisitos
+## Configuração local rápida
+
+Para Windows, use `scripts/start-local.bat`. O launcher oferece:
+
+```text
+[1] SQL - PostgreSQL + aplicação
+[2] LOCAL - sem SQL/Docker
+[0] Sair
+```
+
+O modo SQL é o recomendado para homologação funcional completa. O modo LOCAL é útil para testes de interface sem dependências externas.
+
+Guia completo de instalação e diagnóstico: `docs/LOCAL.md`.
+
+## Pré-requisitos SQL
 
 - Node.js 20+
 - Docker/Compose (recomendado para homologação reproduzível)
@@ -32,7 +46,7 @@ curl -fsS http://localhost:3000/health
 Resultado esperado:
 
 ```json
-{"status":"ok"}
+{"status":"ok","database":"ok"}
 ```
 
 Seed de dados fictícios:
@@ -46,11 +60,11 @@ npm run seed:homologacao
 
 O seed é idempotente e somente-aditivo: registros existentes não são sobrescritos.
 
-Contas criadas quando os e-mails ainda não existem:
+Contas de homologação:
 
 ```text
 admin.homologacao@bancodehoras.local
- gestor.homologacao@bancodehoras.local
+gestor.homologacao@bancodehoras.local
 colaborador.homologacao@bancodehoras.local
 ```
 
@@ -166,5 +180,3 @@ npm test
 ```
 
 A homologação não deve ser considerada concluída sem validar os dois comandos acima, o smoke test `/health` e um teste real contra PostgreSQL.
-
-<!-- CI trigger: 2026-08-21 -->
