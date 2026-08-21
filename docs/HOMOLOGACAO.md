@@ -3,11 +3,47 @@
 ## Pré-requisitos
 
 - Node.js 20+
-- PostgreSQL 16+
+- Docker/Compose (recomendado para homologação reproduzível)
+- PostgreSQL 16+ quando executado fora do Compose
 - `DATABASE_URL`
-- `AUTH_TOKEN_SECRET`
+- `AUTH_TOKEN_SECRET` com pelo menos 32 caracteres
 
-## Preparação
+## Opção A — Homologação com Docker Compose
+
+Defina os segredos no ambiente do shell (não grave no Git):
+
+```bash
+export POSTGRES_PASSWORD='uma-senha-local-forte'
+export AUTH_TOKEN_SECRET='um-segredo-local-com-pelo-menos-32-caracteres'
+```
+
+Suba a stack:
+
+```bash
+docker compose -f docker-compose.homologacao.yml up --build -d
+```
+
+Smoke test:
+
+```bash
+curl -fsS http://localhost:3000/health
+```
+
+Resultado esperado:
+
+```json
+{"status":"ok"}
+```
+
+Encerrar:
+
+```bash
+docker compose -f docker-compose.homologacao.yml down
+```
+
+## Opção B — Node + PostgreSQL local
+
+Instalar dependências:
 
 ```bash
 npm install
@@ -23,6 +59,12 @@ Iniciar:
 
 ```bash
 npm start
+```
+
+Health check:
+
+```bash
+curl -fsS http://localhost:3000/health
 ```
 
 A aplicação fica disponível na porta definida por `PORT` (padrão `3000`).
@@ -93,4 +135,4 @@ npm run check
 npm test
 ```
 
-A homologação não deve ser considerada concluída sem validar os dois comandos acima e um teste real contra PostgreSQL.
+A homologação não deve ser considerada concluída sem validar os dois comandos acima, o smoke test `/health` e um teste real contra PostgreSQL.
