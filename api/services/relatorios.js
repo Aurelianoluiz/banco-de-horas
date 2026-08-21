@@ -5,15 +5,13 @@ const month = (value) => {
 
 const withinMonth = (date, competencia) => String(date || '').startsWith(competencia);
 const normalizeRows = (value) => Array.isArray(value) ? value : [];
-
 const minutesFromInterval = (value) => {
   if (value == null) return 0;
   if (typeof value === 'number') return Math.round(value);
   const text = String(value);
   const match = text.match(/^(-?)(\d+):([0-5]\d)(?::\d{2}(?:\.\d+)?)?$/);
   if (!match) return 0;
-  const sign = match[1] === '-' ? -1 : 1;
-  return sign * (Number(match[2]) * 60 + Number(match[3]));
+  return (match[1] === '-' ? -1 : 1) * (Number(match[2]) * 60 + Number(match[3]));
 };
 
 export class RelatoriosService {
@@ -62,6 +60,6 @@ export class RelatoriosService {
 
   async atrasos({ colaboradorId, competencia }) {
     const rows = await this.espelhoPonto({ colaboradorId, competencia });
-    return rows.filter((item) => item.saldo < 0);
+    return rows.filter((item) => item.saldo < 0 && item.ocorrencia === 'Normal');
   }
 }
