@@ -1,12 +1,12 @@
 const json = (data, status = 200) => ({ status, headers: { 'content-type': 'application/json; charset=utf-8' }, body: JSON.stringify(data) });
-const binary = (data, contentType, status = 200, filename = null) => ({ status, headers: { 'content-type': contentType, ...(filename ? { 'content-disposition': `attachment; filename="${filename.replace(/"/g, '')}"` } : {}) }, body: Buffer.isBuffer(data) ? data : Buffer.from(data) });
+const binary = (data, contentType, status = 200, filename = null) => ({ status, headers: { 'content-type': contentType, ...(filename ? { 'content-disposition': `attachment; filename=\"${filename.replace(/\"/g, '')}\"` } : {}) }, body: Buffer.isBuffer(data) ? data : Buffer.from(data) });
 const route = (method, pattern, handler, auth = null) => ({ method, pattern, handler, auth });
 
 const crudRoutes = (base, service, module) => [
   route('GET', new RegExp(`^/api/${base}$`), async ({ url, identity, scope }) => json(await service.listar(scope(module, Object.fromEntries(url.searchParams), identity))), [module, 'read']),
   route('GET', new RegExp(`^/api/${base}/([^/]+)$`), async ({ params, identity, scope }) => { const item = await service.obter(params[1]); if (!item) return json({ error: 'Registro não encontrado' }, 404); return scope(module, item, identity, true) ? json(item) : json({ error: 'Acesso negado' }, 403); }, [module, 'read']),
-  route('POST', new RegExp(`^/api/${base}$`), async ({ body, identity, scope }) => json(await service.criar(scope(module, body, identity)), 201), [module, 'create']),
-  route('PATCH', new RegExp(`^/api/${base}/([^/]+)$`), async ({ params, body, identity, scope }) => { const current = await service.obter(params[1]); if (!current) return json({ error: 'Registro não encontrado' }, 404); if (!scope(module, current, identity, true)) return json({ error: 'Acesso negado' }, 403); return service.atualizar(params[1], scope(module, body, identity)); }, [module, 'update']),
+  route('POST', new RegExp(`^/api/${base}$`), async ({ body, identity, scope }) => json(await service.criar(scope(module, body, identity), identity?.sub), 201), [module, 'create']),
+  route('PATCH', new RegExp(`^/api/${base}/([^/]+)$`), async ({ params, body, identity, scope }) => { const current = await service.obter(params[1]); if (!current) return json({ error: 'Registro não encontrado' }, 404); if (!scope(module, current, identity, true)) return json({ error: 'Acesso negado' }, 403); return service.atualizar(params[1], scope(module, body, identity), identity?.sub); }, [module, 'update']),
   route('DELETE', new RegExp(`^/api/${base}/([^/]+)$`), async ({ params, identity, scope }) => { const current = await service.obter(params[1]); if (!current) return json({ error: 'Registro não encontrado' }, 404); if (!scope(module, current, identity, true)) return json({ error: 'Acesso negado' }, 403); return (await service.excluir(params[1], identity?.sub)) ? json({ ok: true }) : json({ error: 'Registro não encontrado' }, 404); }, [module, 'delete'])
 ];
 
