@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Calendário — Banco de Horas</title>
+  <style>
+    body{margin:0;font:14px Arial;background:#f6f7f9;color:#111827}.wrap{max-width:1200px;margin:0 auto;padding:24px}.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:18px}.calendar-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.calendar-head button{border:1px solid #d1d5db;background:#fff;border-radius:8px;width:38px;height:38px;font-size:22px;cursor:pointer}.calendar-head h1,.calendar-head h2{margin:0;text-transform:capitalize}.calendar-week,.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:#e5e7eb}.calendar-week{margin-top:18px}.calendar-week span{background:#f9fafb;padding:10px;text-align:center;font-size:12px;color:#6b7280}.calendar-cell{background:#fff;min-height:110px;padding:8px;overflow:hidden}.calendar-empty{background:#f9fafb}.calendar-events{display:grid;gap:4px;margin-top:8px}.calendar-event{display:block;padding:4px 5px;border-radius:5px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:#eef2ff}.calendar-apontamento{background:#eff6ff}.calendar-ferias{background:#ecfdf5}.calendar-folga{background:#fff7ed}.calendar-feriado{background:#fef2f2}.calendar-events small{color:#6b7280}@media(max-width:700px){.wrap{padding:12px}.calendar-cell{min-height:90px;padding:6px}.calendar-event{font-size:10px}}
+  </style>
+</head>
+<body>
+  <main class="wrap"><div id="calendar" class="card" aria-live="polite"></div></main>
+  <script type="module">
+    import { authSession } from './web/auth-session.js';
+    import { calendarController } from './web/calendar-controller.js';
+    import { renderMonth } from './web/calendar-view.js';
+    if (!authSession.requireAuth()) throw new Error('Autenticação necessária');
+    const target = document.getElementById('calendar');
+    const navigate = async (delta) => {
+      let { year, month } = calendarController.getState();
+      month += delta;
+      if (month < 1) { month = 12; year -= 1; }
+      if (month > 12) { month = 1; year += 1; }
+      const state = await calendarController.load({ year, month });
+      renderMonth(target, state, { onNavigate: navigate });
+    };
+    const start = async () => {
+      try {
+        const state = await calendarController.load();
+        renderMonth(target, state, { onNavigate: navigate });
+      } catch (error) { target.textContent = error.message || 'Não foi possível carregar o calendário.'; }
+    };
+    start();
+  </script>
+</body>
+</html>
