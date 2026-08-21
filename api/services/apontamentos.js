@@ -1,6 +1,7 @@
+import { randomUUID } from 'node:crypto';
 import { calculatePoint } from '../../rules/jornada.js';
 
-const makeId = () => `apt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+const makeId = () => randomUUID();
 
 export class ApontamentosService {
   constructor(repository, config, auditoria = null, actor = () => null) {
@@ -13,6 +14,11 @@ export class ApontamentosService {
   async registrar(evento) {
     if (this.auditoria) return this.auditoria.registrar({ usuarioId: this.actor(), ...evento });
     return null;
+  }
+
+  async obterColaborador(id) {
+    if (!id) return {};
+    return (await this.repository.get('colaboradores', id)) || {};
   }
 
   async listar(filtro = {}) {
@@ -30,7 +36,10 @@ export class ApontamentosService {
   }
 
   async criar(input) {
-    const result = calculatePoint(input, this.config);
+    if (!input?.colaboradorId) throw new TypeError('colaboradorId é obrigatório');
+    if (!input?.data) throw new TypeError('data é obrigatória');
+    const colaborador = await this.obterColaborador(input.colaboradorId);
+    const result = calculatePoint(input, this.config, colaborador);
     const item = await this.repository.insert('apontamentos', {
       id: input.id || makeId(),
       colaboradorId: input.colaboradorId,
@@ -49,7 +58,8 @@ export class ApontamentosService {
     const current = await this.obter(id);
     if (!current) return null;
     const merged = { ...current, ...changes };
-    const result = calculatePoint(merged, this.config);
+    const colaborador = await this.obterColaborador(merged.colaboradorId);
+    const result = calculatePoint(merged, this.config, colaborador);
     const depois = await this.repository.update('apontamentos', id, { ...changes, ...result });
     await this.registrar({ acao: 'ALTERAR', entidade: 'apontamentos', registroId: id, antes: current, depois });
     return depois;
