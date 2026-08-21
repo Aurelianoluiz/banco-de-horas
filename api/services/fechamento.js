@@ -1,6 +1,5 @@
+import { randomUUID } from 'node:crypto';
 import { closeMonth, monthlySummary } from '../../rules/fechamento.js';
-
-const makeId = () => `fec-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 export class FechamentoService {
   constructor(repository, auditoria = null) {
@@ -19,8 +18,12 @@ export class FechamentoService {
     if (existente) throw new Error(`Competência já fechada: ${competencia}`);
 
     const points = await this.repository.list('apontamentos');
-    const fechamento = closeMonth({ points, colaboradorId, competencia, saldoAnterior });
-    const salvo = await this.repository.insert('fechamentos', { id: makeId(), status: 'fechado', ...fechamento });
+    const fechamento = closeMonth({ points, collaboratorId: colaboradorId, competencia, saldoAnterior });
+    const salvo = await this.repository.insert('fechamentos', {
+      id: randomUUID(),
+      ...fechamento,
+      fechadoPor: usuarioId
+    });
 
     if (this.auditoria) {
       await this.auditoria.registrar({
