@@ -39,6 +39,15 @@ export const createApi = ({ colaboradores, apontamentos, bancoHoras, fechamentos
   ];
   return async ({ method='GET', url:rawUrl='/', body={}, token=null }={}) => {
     const url=new URL(rawUrl,'http://localhost'); const match=routes.find(item=>item.method===method&&item.pattern.test(url.pathname)); if(!match) return json({error:'Rota não encontrada'},404); const params=match.pattern.exec(url.pathname);
-    try { const identity=match.auth?await auth.authenticate(token):null; if(match.auth&&!identity) return json({error:'Não autenticado'},401); if(match.auth&&!(await auth.authorize(identity,match.auth[0],match.auth[1]))) return json({error:'Acesso negado'},403); return await match.handler({url,body,params,identity}); } catch(error){ return json({error:error.message},error instanceof TypeError?400:422); }
+    try {
+      const identity=match.auth?await auth.authenticate(token):null;
+      if(match.auth&&!identity) return json({error:'Não autenticado'},401);
+      if(match.auth&&!(await auth.authorize(identity,match.auth[0],match.auth[1]))) return json({error:'Acesso negado'},403);
+      return await match.handler({url,body,params,identity});
+    } catch(error) {
+      const clientError = error instanceof TypeError || Number(error?.statusCode) === 400;
+      console.error(error);
+      return json({ error: clientError ? error.message : 'Erro interno do servidor' }, clientError ? 400 : 500);
+    }
   };
 };
