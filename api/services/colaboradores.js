@@ -9,8 +9,8 @@ export class ColaboradoresService {
     this.actor = actor;
   }
 
-  async registrar(evento) {
-    if (this.auditoria) return this.auditoria.registrar({ usuarioId: this.actor(), ...evento });
+  async registrar(evento, actorId = null) {
+    if (this.auditoria) return this.auditoria.registrar({ usuarioId: actorId || this.actor(), ...evento });
     return null;
   }
 
@@ -26,7 +26,7 @@ export class ColaboradoresService {
 
   async obter(id) { return this.repository.get('colaboradores', id); }
 
-  async criar(input) {
+  async criar(input, actorId = null) {
     if (!input?.nome?.trim()) throw new TypeError('nome é obrigatório');
     const item = await this.repository.insert('colaboradores', {
       id: input.id || makeId(),
@@ -37,11 +37,11 @@ export class ColaboradoresService {
       tolerancia: input.tolerancia || '00:15',
       ativo: input.ativo ?? input.status !== 'inativo'
     });
-    await this.registrar({ acao: 'CRIAR', entidade: 'colaboradores', registroId: item.id, depois: item });
+    await this.registrar({ acao: 'CRIAR', entidade: 'colaboradores', registroId: item.id, depois: item }, actorId);
     return item;
   }
 
-  async atualizar(id, changes) {
+  async atualizar(id, changes, actorId = null) {
     if (changes.nome !== undefined && !changes.nome?.trim()) throw new TypeError('nome é obrigatório');
     const antes = await this.repository.get('colaboradores', id);
     if (!antes) return null;
@@ -49,15 +49,15 @@ export class ColaboradoresService {
       ...changes,
       ...(changes.nome ? { nome: changes.nome.trim() } : {})
     });
-    await this.registrar({ acao: 'ALTERAR', entidade: 'colaboradores', registroId: id, antes, depois });
+    await this.registrar({ acao: 'ALTERAR', entidade: 'colaboradores', registroId: id, antes, depois }, actorId);
     return depois;
   }
 
-  async excluir(id) {
+  async excluir(id, actorId = null) {
     const antes = await this.repository.get('colaboradores', id);
     if (!antes) return false;
     const removido = await this.repository.remove('colaboradores', id);
-    if (removido) await this.registrar({ acao: 'EXCLUIR', entidade: 'colaboradores', registroId: id, antes });
+    if (removido) await this.registrar({ acao: 'EXCLUIR', entidade: 'colaboradores', registroId: id, antes }, actorId);
     return removido;
   }
 }
