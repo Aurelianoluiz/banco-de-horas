@@ -1,0 +1,20 @@
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body { overflow-x: hidden; }
+button, input, select, textarea { max-width: 100%; }
+@media (max-width: 1024px) {
+  .sidebar { width: 72px; }
+  .main-content, main, .content { margin-left: 72px; padding: 16px; }
+  .cards, .dashboard-cards, .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .table-wrap, .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+@media (max-width: 640px) {
+  .sidebar { position: fixed; inset: auto 0 0 0; width: 100%; height: auto; z-index: 1000; }
+  .main-content, main, .content { margin-left: 0; padding: 12px 12px 84px; }
+  .cards, .dashboard-cards, .stats-grid { grid-template-columns: 1fr; }
+  .toolbar, .filters, .form-row { grid-template-columns: 1fr !important; flex-direction: column; align-items: stretch; }
+  .modal, .dialog { width: min(96vw, 620px); max-height: 88vh; overflow: auto; }
+  .calendar-cell { min-height: 72px; padding: 6px; }
+  .calendar-event { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hide-mobile { display: none !important; }
+}
