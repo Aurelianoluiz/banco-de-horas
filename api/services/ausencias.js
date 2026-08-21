@@ -1,4 +1,6 @@
-const makeId = () => crypto.randomUUID();
+import { randomUUID } from 'node:crypto';
+
+const makeId = () => randomUUID();
 const validateDate = (value, field) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))) throw new TypeError(`${field} inválida`);
 };
