@@ -35,6 +35,27 @@ Resultado esperado:
 {"status":"ok"}
 ```
 
+Seed de dados fictícios:
+
+```bash
+export SEED_ADMIN_PASSWORD='senha-temporaria-admin'
+export SEED_GESTOR_PASSWORD='senha-temporaria-gestor'
+export SEED_COLABORADOR_PASSWORD='senha-temporaria-colaborador'
+npm run seed:homologacao
+```
+
+O seed é idempotente e somente-aditivo: registros existentes não são sobrescritos.
+
+Contas criadas quando os e-mails ainda não existem:
+
+```text
+admin.homologacao@bancodehoras.local
+ gestor.homologacao@bancodehoras.local
+colaborador.homologacao@bancodehoras.local
+```
+
+Use senhas temporárias exclusivas do ambiente de homologação e troque/remova-as antes de qualquer uso fora desse ambiente.
+
 Encerrar:
 
 ```bash
@@ -65,6 +86,15 @@ Health check:
 
 ```bash
 curl -fsS http://localhost:3000/health
+```
+
+Seed:
+
+```bash
+export SEED_ADMIN_PASSWORD='senha-temporaria-admin'
+export SEED_GESTOR_PASSWORD='senha-temporaria-gestor'
+export SEED_COLABORADOR_PASSWORD='senha-temporaria-colaborador'
+npm run seed:homologacao
 ```
 
 A aplicação fica disponível na porta definida por `PORT` (padrão `3000`).
