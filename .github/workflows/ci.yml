@@ -50,6 +50,7 @@ jobs:
           test -f api/services/relatorios.js
           test -f tests/load-smoke.mjs
           test -f tests/permission-http-smoke.mjs
+          test -f tests/business-http-smoke.mjs
       - name: Check JavaScript syntax
         run: npm run check
       - name: Run automated tests
@@ -147,6 +148,8 @@ jobs:
           test "$status" = "401"
       - name: Verify role permission matrix
         run: node tests/permission-http-smoke.mjs
+      - name: Verify CRUD and duplicate closing
+        run: node tests/business-http-smoke.mjs
       - name: Verify Banco de Horas
         run: |
           token=$(cat /tmp/token); cid=$(cat /tmp/colaborador-id)
