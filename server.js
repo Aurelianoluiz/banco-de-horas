@@ -35,7 +35,7 @@ const staticFile = async (pathname) => {
     const body = await readFile(candidate); const type = MIME[extname(candidate).toLowerCase()] || 'application/octet-stream';
     if (type.startsWith('text/html')) {
       const bootstrap = '<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#2563eb"><link rel="stylesheet" href="/web/responsive.css"><script type="module" src="/web/auth-guard.js"></script><script type="module" src="/web/pwa.js"></script>';
-      return { body: Buffer.from(body.toString('utf8').replace(/<\/head>/i, `${bootstrap}</head>`)), type };
+      return { body: Buffer.from(body.toString('utf8').replace(/<\\/head>/i, `${bootstrap}</head>`)), type };
     }
     return { body, type };
   } catch (error) { if (error.code === 'ENOENT') return null; throw error; }
@@ -49,6 +49,7 @@ const readBody = async (req) => {
 };
 const server = createServer(async (req, res) => {
   try {
+    if (req.url?.startsWith('/health')) { res.writeHead(200, { ...securityHeaders, 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }); res.end(JSON.stringify({ status: 'ok' })); return; }
     if (req.url?.startsWith('/api/')) {
       const raw = await readBody(req); let body = {};
       if (raw) { try { body = JSON.parse(raw); } catch { res.writeHead(400, { ...securityHeaders, 'content-type': 'application/json; charset=utf-8' }); res.end(JSON.stringify({ error: 'JSON inválido' })); return; } }
