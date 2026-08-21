@@ -20,6 +20,17 @@ const request = async (path, options = {}) => {
   return json(response);
 };
 
+const requestBlob = async (path) => {
+  const response = await fetch(`/api/${path}`, { credentials: 'same-origin' });
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    const error = new Error(data?.error || `HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+  return { blob: await response.blob(), filename: response.headers.get('content-disposition')?.match(/filename="?([^";]+)"?/i)?.[1] || 'relatorio.xlsx' };
+};
+
 export const api = {
   async login(email, senha) { return request('login', { method: 'POST', body: JSON.stringify({ email, senha }) }); },
   async list(path) { return request(path); },
@@ -32,5 +43,9 @@ export const api = {
   async relatorio(tipo, params = {}) {
     const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== '')).toString();
     return request(`relatorios/${tipo}${query ? `?${query}` : ''}`);
+  },
+  async exportarRelatorio(tipo, params = {}) {
+    const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== '')).toString();
+    return requestBlob(`relatorios/export/${tipo}${query ? `?${query}` : ''}`);
   }
 };
