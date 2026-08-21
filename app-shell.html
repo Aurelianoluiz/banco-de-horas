@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#2563eb">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/web/responsive.css">
+  <title>Banco de Horas</title>
+  <style>
+    :root{--bg:#f6f7f9;--card:#fff;--ink:#111827;--muted:#6b7280;--line:#e5e7eb;--blue:#2563eb}
+    *{box-sizing:border-box}body{margin:0;font:14px system-ui,-apple-system,Segoe UI,Arial;color:var(--ink);background:var(--bg)}
+    .sidebar{position:fixed;z-index:20;top:0;bottom:0;width:72px;background:#101827;color:#d1d5db;padding:14px 10px;overflow:hidden;transition:.2s}.sidebar:hover{width:240px}
+    .brand{color:#fff;font-weight:800;padding:10px;margin-bottom:18px}.brand span{display:block;font-size:11px;color:#94a3b8;font-weight:500}.nav{display:grid;gap:4px}.nav a{display:flex;gap:12px;align-items:center;color:inherit;text-decoration:none;padding:11px;border-radius:8px;white-space:nowrap}.nav a:hover,.nav a.active{background:#1f2937;color:#fff}.nav .icon{width:28px;text-align:center}
+    .main{margin-left:72px;padding:28px;max-width:1600px}.topbar{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:20px}.topbar h1{margin:0;font-size:28px}.topbar p{margin:5px 0;color:var(--muted)}.actions{display:flex;gap:8px}.btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 13px;border-radius:8px;text-decoration:none;cursor:pointer}.primary{background:var(--blue);border-color:var(--blue);color:#fff}.dashboard-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px}.card span{color:var(--muted);font-size:12px}.card strong{display:block;font-size:25px;margin-top:8px}.table{width:100%;border-collapse:collapse}.table th,.table td{padding:12px;border-bottom:1px solid var(--line);text-align:left}.muted{color:var(--muted)}
+    @media(max-width:900px){.dashboard-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:650px){.sidebar{width:100%;height:58px;inset:auto 0 0 0;display:flex;padding:6px 8px}.sidebar:hover{width:100%}.brand{display:none}.nav{display:flex;justify-content:space-around;width:100%}.nav a{padding:8px}.nav a span:last-child{display:none}.nav .icon{width:auto}.main{margin-left:0;padding:16px 16px 78px}.dashboard-grid{grid-template-columns:1fr}.topbar{align-items:flex-start;flex-direction:column}}
+  </style>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">BH<span>Banco de Horas</span></div>
+    <nav class="nav" aria-label="Principal">
+      <a class="active" href="/"><span class="icon">⌂</span><span>Dashboard</span></a>
+      <a href="/apontamentos.html"><span class="icon">◷</span><span>Apontamentos</span></a>
+      <a href="/colaboradores.html"><span class="icon">♙</span><span>Colaboradores</span></a>
+      <a href="/ausencias.html"><span class="icon">○</span><span>Férias/Folgas</span></a>
+      <a href="/calendario.html"><span class="icon">□</span><span>Calendário</span></a>
+      <a href="/fechamento.html"><span class="icon">✓</span><span>Fechamento</span></a>
+      <a href="/relatorios.html"><span class="icon">▤</span><span>Relatórios</span></a>
+      <a href="/auditoria.html"><span class="icon">⌘</span><span>Auditoria</span></a>
+    </nav>
+  </aside>
+  <main class="main">
+    <div class="topbar">
+      <div><h1>Dashboard</h1><p>Visão geral da jornada e do banco de horas.</p></div>
+      <div class="actions"><a class="btn" href="/apontamentos.html">Apontamentos</a><a class="btn primary" href="/colaboradores.html">Colaboradores</a></div>
+    </div>
+    <section id="dashboard-root" aria-live="polite"><p class="muted">Carregando dashboard...</p></section>
+  </main>
+  <script type="module">
+    import { dashboardController } from '/web/dashboard-controller.js';
+    import { renderDashboard } from '/web/dashboard-view.js';
+    const root = document.querySelector('#dashboard-root');
+    try { await dashboardController.load({ competencia: new Date().toISOString().slice(0,7) }); } catch (_) {}
+    renderDashboard(dashboardController.getState(), root);
+  </script>
+</body>
+</html>
