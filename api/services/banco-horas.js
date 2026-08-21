@@ -1,7 +1,8 @@
+import { closeMonth } from '../../rules/fechamento.js';
+
 export class BancoHorasService {
-  constructor(repository, fechamento) {
+  constructor(repository) {
     this.repository = repository;
-    this.fechamento = fechamento;
   }
 
   async listar(colaboradorId, competencia) {
@@ -15,6 +16,6 @@ export class BancoHorasService {
 
   async resumo(colaboradorId, competencia, saldoAnterior = 0) {
     const points = await this.listar(colaboradorId, competencia);
-    return this.fechamento({ points, collaboratorId: colaboradorId, competencia, saldoAnterior });
+    return closeMonth({ points, collaboratorId: colaboradorId, competencia, saldoAnterior });
   }
 }
