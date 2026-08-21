@@ -1,8 +1,8 @@
-name: Security
+name: Banco de Horas Security
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'feat/**']
   pull_request:
     branches: [main]
   schedule:
@@ -16,13 +16,14 @@ jobs:
   dependency-review:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    continue-on-error: true
     permissions:
       contents: read
       pull-requests: write
     steps:
       - name: Dependency review
         uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
 
   codeql:
     runs-on: ubuntu-latest
@@ -40,3 +41,19 @@ jobs:
           languages: javascript
       - name: Analyze
         uses: github/codeql-action/analyze@v3
+
+  dependency-audit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install
+      - name: npm audit
+        run: npm audit --audit-level=high
