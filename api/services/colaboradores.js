@@ -15,8 +15,9 @@ export class ColaboradoresService {
   }
 
   async listar(filtro = {}) {
-    const records = await this.repository.list('colaboradores');
+    const records = await this.repository.list('colaboradores', { limit: 500 });
     return records.filter((item) => {
+      if (filtro.usuarioId && item.usuarioId !== filtro.usuarioId) return false;
       if (filtro.status && item.status !== filtro.status) return false;
       if (filtro.nome && !item.nome?.toLowerCase().includes(filtro.nome.toLowerCase())) return false;
       return true;
