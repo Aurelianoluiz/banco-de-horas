@@ -35,7 +35,8 @@ const staticFile = async (pathname) => {
     const body = await readFile(candidate); const type = MIME[extname(candidate).toLowerCase()] || 'application/octet-stream';
     if (type.startsWith('text/html')) {
       const bootstrap = '<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#2563eb"><link rel="stylesheet" href="/web/responsive.css"><script type="module" src="/web/auth-guard.js"></script><script type="module" src="/web/pwa.js"></script>';
-      return { body: Buffer.from(body.toString('utf8').replace(/<\\/head>/i, `${bootstrap}</head>`)), type };
+      const indexCompat = decoded === '/index.html' ? '<script defer src="/web/index-compat.js"></script>' : '';
+      return { body: Buffer.from(body.toString('utf8').replace(/<\\/head>/i, `${bootstrap}${indexCompat}</head>`)), type };
     }
     return { body, type };
   } catch (error) { if (error.code === 'ENOENT') return null; throw error; }
