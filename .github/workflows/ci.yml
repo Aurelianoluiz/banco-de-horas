@@ -2,9 +2,10 @@ name: Banco de Horas CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'feat/**']
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -15,33 +16,50 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
       - name: Validate HTML
         run: |
           test -f index.html
+          test -f login.html
           grep -q '<html' index.html
           grep -q 'Banco de Horas' index.html
+
       - name: Validate application files
         run: |
-          test -f data-model.js
-          test -f integration.js
-          test -f importadores/apontamento-xls.js
-          test -f rules/jornada.js
-          test -f rules/compensacao.js
-          test -f rules/fechamento.js
-          test -f api/repository.js
+          test -f server.js
+          test -f api/application.js
+          test -f api/http.js
+          test -f api/repository-postgres.js
+          test -f api/auth-postgres.js
           test -f api/services/apontamentos.js
           test -f api/services/colaboradores.js
           test -f api/services/auditoria.js
+          test -f api/services/fechamento.js
+          test -f api/services/ausencias.js
+          test -f api/services/relatorios.js
+
       - name: Check JavaScript syntax
         run: npm run check
+
       - name: Run automated tests
         run: npm test
+
       - name: Check required project sections
         run: |
           grep -q 'Banco de Horas' index.html
           grep -q 'Férias' index.html
           grep -q 'Folgas' index.html
           grep -q 'Colaboradores' index.html
+
       - name: Repository summary
         run: |
           echo "Banco de Horas CI OK"
