@@ -2,8 +2,17 @@ import { api } from './api-client.js';
 
 const toLocal = (item = {}) => ({ ...item, id: item.id ?? item._id, cid: item.cid ?? item.colaboradorId, date: item.date ?? item.data, in: item.in ?? item.entrada, out: item.out ?? item.saida, brk: item.brk ?? item.intervalo, saldo: item.saldo });
 const toApiApontamento = (item = {}) => ({ id: item.id, colaboradorId: item.colaboradorId ?? item.cid, data: item.data ?? item.date, entrada: item.entrada ?? item.in ?? null, saida: item.saida ?? item.out ?? null, intervalo: item.intervalo ?? item.brk ?? '00:00', ocorrencia: item.ocorrencia ?? 'Normal' });
-const toLocalColaborador = (item = {}) => ({ ...item, id: item.id ?? item._id, seg: item.seg ?? item.jornada ?? '09:00', sex: item.sex ?? item.jornada ?? '08:00', tol: item.tol ?? item.tolerancia ?? '00:15', active: item.active ?? item.status === 'ativo' });
-const toApiColaborador = (item = {}) => ({ id: item.id, nome: item.nome, salario: item.salario ?? null, jornada: item.jornada ?? item.seg ?? null, tolerancia: item.tolerancia ?? item.tol ?? '00:15', status: item.status ?? (item.active === false ? 'inativo' : 'ativo') });
+const toLocalColaborador = (item = {}) => ({ ...item, id: item.id ?? item._id, seg: item.seg ?? item.jornada ?? item.cargaSegQui ?? '09:00', sex: item.sex ?? item.cargaSexta ?? '08:00', tol: item.tol ?? item.tolerancia ?? '00:15', active: item.active ?? item.status === 'ativo' });
+const toApiColaborador = (item = {}) => ({
+  id: item.id,
+  nome: item.nome,
+  salario: item.salario ?? null,
+  jornada: item.jornada ?? item.seg ?? item.cargaSegQui ?? null,
+  cargaSegQui: item.cargaSegQui ?? item.seg ?? item.jornada ?? '09:00',
+  cargaSexta: item.cargaSexta ?? item.sex ?? '08:00',
+  tolerancia: item.tolerancia ?? item.tol ?? '00:15',
+  status: item.status ?? (item.active === false ? 'inativo' : 'ativo')
+});
 const toLocalFerias = (item = {}) => ({ ...item, id: item.id ?? item._id });
 const toLocalFolga = (item = {}) => ({ ...item, id: item.id ?? item._id });
 const toLocalFeriado = (item = {}) => ({ ...item, id: item.id ?? item._id, nome: item.nome ?? item.descricao });
