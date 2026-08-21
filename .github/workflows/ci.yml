@@ -70,3 +70,92 @@ jobs:
         run: |
           echo "Banco de Horas CI OK"
           echo "Files: $(find . -maxdepth 3 -type f | wc -l)"
+
+  homologacao:
+    needs: validate
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: banco_de_horas
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d banco_de_horas"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    env:
+      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/banco_de_horas
+      AUTH_TOKEN_SECRET: ci-segredo-de-homologacao-com-mais-de-32-caracteres
+      SEED_ADMIN_PASSWORD: ci-admin-password-2026
+      SEED_GESTOR_PASSWORD: ci-gestor-password-2026
+      SEED_COLABORADOR_PASSWORD: ci-colaborador-password-2026
+      PORT: 3000
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Apply PostgreSQL schema
+        run: psql "$DATABASE_URL" -f database/schema.sql
+
+      - name: Seed homologation data
+        run: npm run seed:homologacao
+
+      - name: Start application
+        run: |
+          npm start > /tmp/banco-de-horas.log 2>&1 &
+          echo $! > /tmp/banco-de-horas.pid
+
+      - name: Wait for health endpoint
+        run: |
+          for i in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:3000/health | grep -q '"status":"ok"'; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/banco-de-horas.log
+          exit 1
+
+      - name: Verify invalid login
+        run: |
+          status=$(curl --silent --show-error --output /tmp/login-invalid.json --write-out '%{http_code}' \
+            -H 'content-type: application/json' \
+            -d '{"email":"admin.homologacao@bancodehoras.local","senha":"senha-incorreta"}' \
+            http://127.0.0.1:3000/api/login)
+          test "$status" = "401"
+
+      - name: Verify admin login and protected API
+        run: |
+          curl --fail --silent --show-error \
+            -H 'content-type: application/json' \
+            -d '{"email":"admin.homologacao@bancodehoras.local","senha":"ci-admin-password-2026"}' \
+            http://127.0.0.1:3000/api/login > /tmp/login.json
+          node -e "const r=require('fs').readFileSync('/tmp/login.json','utf8'); const j=JSON.parse(r); if(!j.token) process.exit(1); require('fs').writeFileSync('/tmp/token',j.token)"
+          token=$(cat /tmp/token)
+          curl --fail --silent --show-error -H "authorization: Bearer $token" http://127.0.0.1:3000/api/colaboradores > /tmp/colaboradores.json
+          node -e "const r=require('fs').readFileSync('/tmp/colaboradores.json','utf8'); const j=JSON.parse(r); if(!Array.isArray(j)) process.exit(1)"
+
+      - name: Verify protected API rejects anonymous requests
+        run: |
+          status=$(curl --silent --show-error --output /tmp/anonymous.json --write-out '%{http_code}' http://127.0.0.1:3000/api/colaboradores)
+          test "$status" = "401"
+
+      - name: Verify server logs on failure only
+        if: ${{ failure() }}
+        run: cat /tmp/banco-de-horas.log
