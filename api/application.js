@@ -27,6 +27,6 @@ export const createApplication = ({ pool = null, tokenSecret = process.env.AUTH_
   const relatorios = new RelatoriosService(repository);
   const exportacao = new ExportacaoService(relatorios);
   const auth = createPostgresAuth({ repository, tokenSecret });
-  const api = createApi({ colaboradores, apontamentos, bancoHoras, fechamentos, ferias, folgas, feriados, relatorios, exportacao, auth });
-  return { api, pool: dbPool, repository, services: { colaboradores, apontamentos, bancoHoras, fechamentos, ferias, folgas, feriados, relatorios, exportacao }, auth };
+  const api = createApi({ colaboradores, apontamentos, bancoHoras, fechamentos, ferias, folgas, feriados, relatorios, exportacao, auditoria, auth });
+  return { api, pool: dbPool, repository, services: { colaboradores, apontamentos, bancoHoras, fechamentos, ferias, folgas, feriados, relatorios, exportacao, auditoria }, auth };
 };
