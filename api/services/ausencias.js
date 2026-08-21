@@ -5,9 +5,10 @@ const validateDate = (value, field) => {
 const validateStatus = (value, allowed, field) => {
   if (value !== undefined && !allowed.includes(value)) throw new TypeError(`${field} inválido`);
 };
+const filterRows = (rows, filters) => rows.filter((row) => !filters.colaboradorId || row.colaboradorId === filters.colaboradorId);
 
 const createCrudService = (repository, table, { mapCreate, mapUpdate, validateCreate = () => {}, validateUpdate = () => {} } = {}) => ({
-  async listar(filters = {}) { return repository.list(table, filters); },
+  async listar(filters = {}) { return filterRows(await repository.list(table), filters); },
   async obter(id) { return repository.get(table, id); },
   async criar(input) { validateCreate(input); return repository.insert(table, mapCreate(input)); },
   async atualizar(id, input) { validateUpdate(input); return repository.update(table, id, mapUpdate(input)); },
