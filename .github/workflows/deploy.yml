@@ -21,7 +21,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
       - name: Install dependencies
         run: npm install
       - name: Validate production entrypoint
@@ -31,6 +30,9 @@ jobs:
           test -f .env.example
           npm run check
           npm test
+      - name: Validate release version
+        run: |
+          test "$(node -p "require('./package.json').version")" = "1.0.0"
       - name: Publish deployment manifest
         run: |
           mkdir -p deploy
@@ -40,4 +42,5 @@ jobs:
           This application requires a Node.js runtime and PostgreSQL. The web shell is served by `server.js`.
           GitHub Pages is not a production target for this full-stack application because it cannot execute the Node.js API.
           Configure DATABASE_URL and AUTH_TOKEN_SECRET in the target hosting environment, then run `npm install && npm start`.
+          Release: 1.0.0
           EOF
