@@ -166,3 +166,5 @@ npm test
 ```
 
 A homologação não deve ser considerada concluída sem validar os dois comandos acima, o smoke test `/health` e um teste real contra PostgreSQL.
+
+<!-- CI trigger: 2026-08-21 -->
