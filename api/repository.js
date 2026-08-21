@@ -26,6 +26,14 @@ export class MemoryRepository {
     return record ? structuredClone(record) : null;
   }
 
+  findById(name, id) {
+    return this.get(name, id);
+  }
+
+  findOne(name, predicate = {}) {
+    return this.list(name, (record) => Object.entries(predicate).every(([key, value]) => record[key] === value))[0] || null;
+  }
+
   insert(name, record) {
     if (!record?.id) throw new TypeError('registro.id é obrigatório');
     const collection = this.collection(name);
@@ -45,6 +53,18 @@ export class MemoryRepository {
 
   remove(name, id) {
     return this.collection(name).delete(assertId(id));
+  }
+
+  delete(name, id) {
+    return this.remove(name, id);
+  }
+
+  upsertConfiguracao(chave, valor, usuarioId = null) {
+    const collection = this.collection('configuracoes');
+    const current = collection.get(chave);
+    const updated = { chave, valor, atualizadoPor: usuarioId, atualizadoEm: new Date().toISOString() };
+    collection.set(chave, { ...(current || {}), ...updated });
+    return structuredClone(collection.get(chave));
   }
 }
 
