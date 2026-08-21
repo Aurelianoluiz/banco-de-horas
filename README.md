@@ -1,43 +1,140 @@
 # Banco de Horas
 
-Aplicação web para gestão de jornada, banco de horas, férias e folgas.
+Aplicação web full-stack para gestão de jornada, banco de horas, férias, folgas, feriados, atestados, ajustes, relatórios e auditoria.
 
 ## Objetivo
-Transformar a estrutura da planilha `Apontamento.xls` em uma aplicação web moderna, preservando os conceitos de carga diária/mensal, tolerância, apontamentos, horas extras, faltas/atrasos e acumulados.
+
+Transformar a estrutura funcional da planilha `Apontamento.xls` em uma aplicação web moderna, preservando as regras de jornada, tolerância, créditos, débitos, acumulados e fechamento mensal que forem validadas contra o XLS.
+
+## Arquitetura
+
+```text
+Browser / PWA
+   ↓
+server.js
+   ├── Web shell e módulos
+   └── HTTP API
+          ↓
+      Services
+          ↓
+      Regras de negócio
+          ↓
+   PostgreSQL Repository
+          ↓
+      PostgreSQL
+```
+
+Documentação detalhada: `docs/ARQUITETURA.md`.
 
 ## Módulos
+
 - Dashboard
 - Apontamentos
 - Banco de Horas
 - Calendário
 - Férias
 - Folgas
+- Feriados
 - Atestados
 - Ajustes
 - Colaboradores
+- Fechamento
 - Relatórios
+- Auditoria
 - Configurações
 
-## Estado atual
-A interface web possui navegação por módulos, sidebar minimalista, dashboard, tabelas, modal de apontamento, busca, dados de demonstração e cálculo inicial de jornada. O motor considera entrada, saída, intervalo, carga diária, sexta-feira, sábado/domingo e tolerância configurável.
+## Fonte de verdade
 
-## Dados
-A primeira versão usa `localStorage` somente para prototipação. O GitHub guarda o código-fonte e versões do sistema; não é usado como banco de dados operacional.
+O fluxo principal usa PostgreSQL como fonte operacional de verdade. O `localStorage` permanece somente em código legado isolado e não faz parte da entrada principal servida em `/`.
 
-## Modelo de domínio
-O arquivo `data-model.js` separa as entidades previstas para a futura API/banco de dados: colaboradores, apontamentos, férias, folgas, feriados, ajustes e fechamentos mensais.
+## Autenticação e segurança
 
-## Referência do XLS
-A planilha `Apontamento.xls` é a fonte de referência funcional deste projeto. A implementação definitiva deve validar as regras da planilha antes do fechamento mensal, principalmente carga horária, tolerância, horas extras, faltas/atrasos, feriados e acumulados.
+- Login com PostgreSQL
+- Perfis ADMIN, GESTOR e COLABORADOR
+- Autorização por módulo/ação
+- Auditoria de alterações
+- Secrets via variáveis de ambiente
+- CodeQL
+- Dependency Review
+- `npm audit`
+- Headers básicos de segurança no servidor
 
-## Próximas evoluções
-1. Importação e validação da estrutura do XLS.
-2. CRUD completo de colaboradores, apontamentos, férias e folgas.
-3. Banco de dados persistente.
-4. Autenticação e perfis de acesso.
-5. Fechamento mensal e histórico de saldos.
-6. Calendário de feriados configurável.
-7. Relatórios PDF/XLSX.
-8. Auditoria de alterações.
-9. Testes automatizados dos cálculos.
-10. Deploy de produção.
+## PWA e responsividade
+
+A aplicação possui manifest, service worker, registro PWA e CSS responsivo para desktop, tablet e celular.
+
+## Relatórios
+
+Os relatórios disponíveis incluem:
+
+- Espelho de ponto
+- Banco de horas
+- Férias
+- Folgas
+- Fechamento
+- Atrasos
+- XLSX
+- PDF
+- Impressão
+
+## Importação XLS
+
+A importação segue o fluxo:
+
+```text
+XLS
+ ↓
+Análise
+ ↓
+Validação
+ ↓
+Prévia
+ ↓
+Confirmação
+ ↓
+Importação
+```
+
+Nenhuma regra de negócio deve ser considerada definitiva sem comparação com a planilha de referência.
+
+## Desenvolvimento
+
+```bash
+npm install
+npm run check
+npm test
+npm start
+```
+
+Variáveis obrigatórias:
+
+```text
+DATABASE_URL
+AUTH_TOKEN_SECRET
+```
+
+Modelo de configuração: `.env.example`.
+
+## PostgreSQL
+
+Aplicar o schema:
+
+```bash
+psql "$DATABASE_URL" -f database/schema.sql
+```
+
+## Homologação
+
+O checklist está em `docs/HOMOLOGACAO.md`.
+
+A homologação real ainda exige uma execução contra PostgreSQL com dados representativos e validação final do CI.
+
+## Deploy
+
+A aplicação completa requer runtime Node.js + PostgreSQL. GitHub Pages não é o destino de produção do backend; o workflow de deploy apenas valida o contrato de produção até que o host definitivo seja configurado.
+
+## Estado do projeto
+
+A fundação, API, PostgreSQL, autenticação, permissões, auditoria, fechamento, calendário, relatórios, importação XLS, PWA, responsividade e shell modular já estão implementados no branch de desenvolvimento atual.
+
+A versão `v1.0` só deve ser marcada após homologação real, validação integral das regras do XLS, execução CI verde e configuração do ambiente de produção.
