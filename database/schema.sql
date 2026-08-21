@@ -127,5 +127,12 @@ create table if not exists configuracoes (
 );
 
 create index if not exists idx_apontamentos_colaborador_data on apontamentos(colaborador_id, data);
+create index if not exists idx_apontamentos_data on apontamentos(data);
 create index if not exists idx_ferias_colaborador_periodo on ferias(colaborador_id, inicio, fim);
+create index if not exists idx_folgas_colaborador_data on folgas(colaborador_id, data);
+create index if not exists idx_atestados_colaborador_periodo on atestados(colaborador_id, inicio, fim);
+create index if not exists idx_ajustes_colaborador_data on ajustes(colaborador_id, data);
+create index if not exists idx_ajustes_usuario_data on ajustes(usuario_id, criado_em);
+create index if not exists idx_fechamentos_colaborador_competencia on fechamentos(colaborador_id, competencia);
 create index if not exists idx_auditoria_entidade_registro on auditoria(entidade, registro_id, criado_em);
+create index if not exists idx_auditoria_usuario_data on auditoria(usuario_id, criado_em);
