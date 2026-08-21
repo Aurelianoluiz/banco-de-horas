@@ -16,16 +16,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-
       - name: Install dependencies
         run: npm install
-
       - name: Validate web entrypoint
         run: |
           test -f app-shell.html
@@ -34,13 +31,13 @@ jobs:
           grep -q 'Banco de Horas' app-shell.html
           test -f manifest.webmanifest
           test -f service-worker.js
-
       - name: Validate application files
         run: |
           test -f server.js
           test -f api/application.js
           test -f api/http.js
           test -f api/repository-postgres.js
+          test -f api/repository-transaction.js
           test -f api/auth-postgres.js
           test -f api/services/apontamentos.js
           test -f api/services/colaboradores.js
@@ -52,20 +49,17 @@ jobs:
           test -f api/services/atestados.js
           test -f api/services/ajustes.js
           test -f api/services/relatorios.js
-
+          test -f tests/load-smoke.mjs
       - name: Check JavaScript syntax
         run: npm run check
-
       - name: Run automated tests
         run: npm test
-
       - name: Validate security and deployment contract
         run: |
           test -f .env.example
           grep -q 'AUTH_TOKEN_SECRET' .env.example
           grep -q 'DATABASE_URL' .env.example
           grep -q 'app-shell.html' server.js
-
       - name: Repository summary
         run: |
           echo "Banco de Horas CI OK"
@@ -88,7 +82,6 @@ jobs:
           --health-interval=5s
           --health-timeout=5s
           --health-retries=20
-
     env:
       DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/banco_de_horas
       AUTH_TOKEN_SECRET: ci-segredo-de-homologacao-com-mais-de-32-caracteres
@@ -96,47 +89,39 @@ jobs:
       SEED_GESTOR_PASSWORD: ci-gestor-password-2026
       SEED_COLABORADOR_PASSWORD: ci-colaborador-password-2026
       PORT: 3000
-
+      LOAD_REQUESTS: 60
+      LOAD_CONCURRENCY: 10
+      LOAD_P95_MAX_MS: 1000
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-
       - name: Install PostgreSQL client
         run: |
           sudo apt-get update
           sudo apt-get install -y postgresql-client
-
       - name: Install dependencies
         run: npm install
-
       - name: Apply PostgreSQL schema
         run: psql "$DATABASE_URL" -f database/schema.sql
-
       - name: Seed homologation data
         run: npm run seed:homologacao
-
       - name: Start application
         run: |
           npm start > /tmp/banco-de-horas.log 2>&1 &
           echo $! > /tmp/banco-de-horas.pid
-
       - name: Wait for health endpoint
         run: |
           for i in {1..30}; do
-            if curl --fail --silent http://127.0.0.1:3000/health | grep -q '"status":"ok"'; then
-              exit 0
-            fi
+            if curl --fail --silent http://127.0.0.1:3000/health | grep -q '"status":"ok"'; then exit 0; fi
             sleep 1
           done
           cat /tmp/banco-de-horas.log
           exit 1
-
       - name: Verify invalid login
         run: |
           status=$(curl --silent --show-error --output /tmp/login-invalid.json --write-out '%{http_code}' \
@@ -144,57 +129,46 @@ jobs:
             -d '{"email":"admin.homologacao@bancodehoras.local","senha":"senha-incorreta"}' \
             http://127.0.0.1:3000/api/login)
           test "$status" = "401"
-
       - name: Verify admin login and protected API
         run: |
-          curl --fail --silent --show-error \
-            -H 'content-type: application/json' \
+          curl --fail --silent --show-error -H 'content-type: application/json' \
             -d '{"email":"admin.homologacao@bancodehoras.local","senha":"ci-admin-password-2026"}' \
             http://127.0.0.1:3000/api/login > /tmp/login.json
           node -e "const fs=require('fs'); const j=JSON.parse(fs.readFileSync('/tmp/login.json','utf8')); if(!j.token || !j.user || j.user.role!=='admin') process.exit(1); fs.writeFileSync('/tmp/token',j.token)"
           token=$(cat /tmp/token)
           curl --fail --silent --show-error -H "authorization: Bearer $token" http://127.0.0.1:3000/api/colaboradores > /tmp/colaboradores.json
           node -e "const fs=require('fs'); const j=JSON.parse(fs.readFileSync('/tmp/colaboradores.json','utf8')); if(!Array.isArray(j) || j.length<1) process.exit(1)"
-
       - name: Capture homologation collaborator
         run: |
           node -e "const fs=require('fs'); const j=JSON.parse(fs.readFileSync('/tmp/colaboradores.json','utf8')); const c=j.find(x=>x.email==='colaborador.homologacao@bancodehoras.local') || j.find(x=>x.nome==='Colaborador Homologação'); if(!c) process.exit(1); fs.writeFileSync('/tmp/colaborador-id',String(c.id))"
-
       - name: Verify protected API rejects anonymous requests
         run: |
           status=$(curl --silent --show-error --output /tmp/anonymous.json --write-out '%{http_code}' http://127.0.0.1:3000/api/colaboradores)
           test "$status" = "401"
-
       - name: Verify Banco de Horas
         run: |
-          token=$(cat /tmp/token)
-          cid=$(cat /tmp/colaborador-id)
+          token=$(cat /tmp/token); cid=$(cat /tmp/colaborador-id)
           curl --fail --silent --show-error -H "authorization: Bearer $token" "http://127.0.0.1:3000/api/banco-horas/$cid/2026-08" > /tmp/banco-horas.json
           node -e "const fs=require('fs'); const j=JSON.parse(fs.readFileSync('/tmp/banco-horas.json','utf8')); const cid=process.argv[1]; if(!j || typeof j!=='object') process.exit(1); if(j.colaboradorId && j.colaboradorId!==cid) process.exit(1)" "$cid"
-
       - name: Verify monthly closing and audit
         run: |
-          token=$(cat /tmp/token)
-          cid=$(cat /tmp/colaborador-id)
-          curl --fail --silent --show-error \
-            -H "authorization: Bearer $token" \
-            -H 'content-type: application/json' \
+          token=$(cat /tmp/token); cid=$(cat /tmp/colaborador-id)
+          curl --fail --silent --show-error -H "authorization: Bearer $token" -H 'content-type: application/json' \
             -d "{\"colaboradorId\":\"$cid\",\"competencia\":\"2026-08\",\"saldoAnterior\":0}" \
             http://127.0.0.1:3000/api/fechamentos > /tmp/fechamento.json
           node -e "const fs=require('fs'); const j=JSON.parse(fs.readFileSync('/tmp/fechamento.json','utf8')); if(!j.id || j.colaboradorId!==process.argv[1] || j.competencia!=='2026-08') process.exit(1)" "$cid"
           fechamento_id=$(node -e "console.log(JSON.parse(require('fs').readFileSync('/tmp/fechamento.json','utf8')).id)")
           curl --fail --silent --show-error -H "authorization: Bearer $token" "http://127.0.0.1:3000/api/auditoria?entidade=fechamentos&registro_id=$fechamento_id" > /tmp/auditoria.json
           node -e "const fs=require('fs'); const j=JSON.parse(fs.readFileSync('/tmp/auditoria.json','utf8')); if(!Array.isArray(j) || j.length<1) process.exit(1)"
-
       - name: Verify report exports
         run: |
-          token=$(cat /tmp/token)
-          cid=$(cat /tmp/colaborador-id)
+          token=$(cat /tmp/token); cid=$(cat /tmp/colaborador-id)
           curl --fail --silent --show-error -H "authorization: Bearer $token" "http://127.0.0.1:3000/api/relatorios/export/banco-horas?colaboradorId=$cid&competencia=2026-08" -o /tmp/relatorio.xlsx
           node -e "const fs=require('fs'); const b=fs.readFileSync('/tmp/relatorio.xlsx'); if(b[0]!==0x50 || b[1]!==0x4b) process.exit(1)"
           curl --fail --silent --show-error -H "authorization: Bearer $token" "http://127.0.0.1:3000/api/relatorios/pdf/banco-horas?colaboradorId=$cid&competencia=2026-08" -o /tmp/relatorio.pdf
           node -e "const fs=require('fs'); const b=fs.readFileSync('/tmp/relatorio.pdf','utf8'); if(!b.startsWith('%PDF-')) process.exit(1)"
-
+      - name: Run controlled load smoke
+        run: npm run load:smoke
       - name: Verify server logs on failure only
         if: ${{ failure() }}
         run: cat /tmp/banco-de-horas.log
