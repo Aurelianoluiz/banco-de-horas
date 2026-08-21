@@ -28,11 +28,21 @@ export class MemoryRepository {
   listApontamentos({ colaboradorId, inicio, fim, limit, offset } = {}) {
     return this.list('apontamentos', { predicate: (record) => (!colaboradorId || record.colaboradorId === colaboradorId) && (!inicio || String(record.data || '') >= inicio) && (!fim || String(record.data || '') <= fim), limit, offset });
   }
-  listApontamentosByRange(options = {}) { return this.listApontamentos({ ...options, fim: options.fim ? String(options.fim).slice(0, 10) : undefined }); }
+  listApontamentosByRange(options = {}) { return this.listApontamentos(options); }
   get(name, id) { const record = this.collection(name).get(assertId(id)); return record ? structuredClone(record) : null; }
   findById(name, id) { return this.get(name, id); }
   findOne(name, predicate = {}) { return this.list(name, (record) => Object.entries(predicate).every(([key, value]) => record[key] === value))[0] || null; }
-  insert(name, record) { if (!record?.id) throw new TypeError('registro.id é obrigatório'); const collection = this.collection(name); if (collection.has(record.id)) throw new Error(`Registro já existe: ${record.id}`); collection.set(record.id, structuredClone(record)); return structuredClone(record); }
+  insert(name, record) {
+    if (!record?.id) throw new TypeError('registro.id é obrigatório');
+    const collection = this.collection(name);
+    if (collection.has(record.id)) {
+      const error = new Error(`Registro já existe: ${record.id}`);
+      error.code = '23505';
+      throw error;
+    }
+    collection.set(record.id, structuredClone(record));
+    return structuredClone(record);
+  }
   update(name, id, changes) { const collection = this.collection(name); const current = collection.get(assertId(id)); if (!current) return null; const updated = { ...current, ...structuredClone(changes), id }; collection.set(id, updated); return structuredClone(updated); }
   remove(name, id) { return this.collection(name).delete(assertId(id)); }
   delete(name, id) { return this.remove(name, id); }
