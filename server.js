@@ -56,7 +56,16 @@ const server = createServer(async (req, res) => {
   };
   try {
     const pathname = new URL(req.url || '/', 'http://localhost').pathname;
-    if (pathname === '/health') { send(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }, JSON.stringify({ status: 'ok' })); return; }
+    if (pathname === '/health') {
+      try {
+        await pool.query('SELECT 1');
+        send(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }, JSON.stringify({ status: 'ok', database: 'ok' }));
+      } catch (error) {
+        console.error('health database check failed', error);
+        send(503, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }, JSON.stringify({ status: 'degraded', database: 'down' }));
+      }
+      return;
+    }
     if (pathname.startsWith('/api/')) {
       const raw = await readBody(req); let body = {};
       if (raw) { try { body = JSON.parse(raw); } catch { send(400, { 'content-type': 'application/json; charset=utf-8' }, JSON.stringify({ error: 'JSON inválido' })); return; } }
