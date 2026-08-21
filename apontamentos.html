@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Apontamentos — Banco de Horas</title><style>body{font:14px Arial;margin:24px;color:#111827;background:#f6f7f9}.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:18px}.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}.toolbar input,.toolbar button{padding:9px;border:1px solid #d1d5db;border-radius:7px;background:#fff}.table{width:100%;border-collapse:collapse}.table th,.table td{text-align:left;padding:10px;border-bottom:1px solid #e5e7eb;font-size:12px}.error{color:#b91c1c;padding:12px 0}.empty{padding:24px;text-align:center;color:#6b7280}@media(max-width:700px){body{margin:12px}.card{overflow:auto}.toolbar{display:grid}.toolbar>*{width:100%;box-sizing:border-box}}</style></head>
+<body>
+<main><h1>Apontamentos</h1><p>Registro e conferência da jornada.</p>
+<section class="card"><div class="toolbar"><input id="dateFrom" type="date"><input id="dateTo" type="date"><button id="reload">Atualizar</button></div><div id="app" aria-live="polite">Carregando…</div></section></main>
+<script type="module">
+import { apontamentosController } from './web/apontamentos-controller.js';
+import { dataAdapter } from './web/data-adapter.js';
+import { renderApontamentos } from './web/apontamentos-view.js';
+import { authSession } from './web/auth-session.js';
+
+if (!authSession.requireAuth()) throw new Error('Autenticação necessária');
+const app = document.getElementById('app');
+const load = async () => {
+  app.innerHTML = 'Carregando…';
+  try {
+    const [state, colaboradores] = await Promise.all([
+      apontamentosController.load({ inicio: dateFrom.value, fim: dateTo.value }),
+      dataAdapter.loadColaboradores()
+    ]);
+    app.innerHTML = renderApontamentos({ ...state, colaboradores });
+  } catch (error) { app.innerHTML = `<div class="error">${String(error.message || error).replace(/[<>]/g, '')}</div>`; }
+};
+reload.addEventListener('click', load);
+load();
+</script></body></html>
