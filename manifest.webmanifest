@@ -1,1 +1,1 @@
-{"name":"Banco de Horas","short_name":"BancoHoras","lang":"pt-BR","start_url":"./","display":"standalone","background_color":"#f1f5f9","theme_color":"#2563eb","description":"Gestão de jornada, banco de horas, férias e folgas."}
+{"name":"Banco de Horas","short_name":"BancoHoras","lang":"pt-BR","start_url":"/","scope":"/","display":"standalone","background_color":"#f1f5f9","theme_color":"#2563eb","description":"Gestão de jornada, banco de horas, férias e folgas.","icons":[{"src":"/icons/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
