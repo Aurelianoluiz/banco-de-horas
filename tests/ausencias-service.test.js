@@ -23,11 +23,11 @@ test('ferias valida periodo e persiste', async () => {
 test('folga exige colaborador e data', async () => {
   const service = createFolgasService(repo());
   await assert.rejects(() => service.criar({ data: '2026-08-20' }), /colaboradorId/);
-  assert.equal((await service.criar({ colaboradorId: 'c1', data: '2026-08-20' })).data, '2026-08-20');
+  assert.equal((await service.criar({ colaboradorId: 'c1', data: '2026-08-20', motivo: 'Compensação' })).data, '2026-08-20');
 });
 
-test('feriado exige nome e data', async () => {
+test('feriado exige descricao e data', async () => {
   const service = createFeriadosService(repo());
-  await assert.rejects(() => service.criar({ data: '2026-01-01' }), /nome/);
-  assert.equal((await service.criar({ nome: 'Confraternização', data: '2026-01-01' })).nome, 'Confraternização');
+  await assert.rejects(() => service.criar({ data: '2026-01-01' }), /descricao/);
+  assert.equal((await service.criar({ descricao: 'Confraternização', data: '2026-01-01' })).descricao, 'Confraternização');
 });
