@@ -33,6 +33,16 @@ export class PostgresRepository {
     const orderBy = ORDER_BY[table] || 'id';
     const result = await this.query(`SELECT * FROM ${safeIdentifier(table)}${where ? ` WHERE ${where}` : ''} ORDER BY ${orderBy} LIMIT ${limitParam} OFFSET ${offsetParam}`, values); return result.rows.map((row) => mapFromRow(table, row));
   }
+  async listApontamentosByRange({ inicio, fim, colaboradorId } = {}) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(inicio)) || !/^\d{4}-\d{2}-\d{2}$/.test(String(fim))) throw new TypeError('Faixa de datas inválida');
+    const values = [inicio, fim];
+    let sql = `SELECT * FROM "apontamentos" WHERE "data" >= $1 AND "data" < $2`;
+    if (colaboradorId) { sql += ' AND "colaborador_id" = $3'; values.push(colaboradorId); }
+    sql += ' ORDER BY "data", "id" LIMIT $' + (values.length + 1);
+    values.push(500);
+    const result = await this.query(sql, values);
+    return result.rows.map((row) => mapFromRow('apontamentos', row));
+  }
   async get(table, id) { const key = table === 'configuracoes' ? 'chave' : 'id'; const result = await this.query(`SELECT * FROM ${safeIdentifier(table)} WHERE ${safeIdentifier(key)} = $1 LIMIT 1`, [id]); return result.rows[0] ? mapFromRow(table, result.rows[0]) : null; }
   async findById(table, id) { return this.get(table, id); }
   async findOne(table, predicate = {}) { const entries = Object.entries(predicate); if (!entries.length) return (await this.list(table, { limit: 1 }))[0] || null; const clauses = entries.map(([key], index) => `${safeIdentifier(key)} = $${index + 1}`).join(' AND '); const result = await this.query(`SELECT * FROM ${safeIdentifier(table)} WHERE ${clauses} LIMIT 1`, entries.map(([, value]) => value)); return result.rows[0] ? mapFromRow(table, result.rows[0]) : null; }
