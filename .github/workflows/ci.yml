@@ -19,15 +19,19 @@ jobs:
         run: |
           test -f index.html
           grep -q '<html' index.html
-          grep -q 'app.js' index.html
+          grep -q 'Banco de Horas' index.html
       - name: Validate application files
         run: |
-          test -f app.js
-          test -f style.css
-          test -f manifest.webmanifest
           test -f data-model.js
+          test -f integration.js
+          test -f importadores/apontamento-xls.js
           test -f rules/jornada.js
+          test -f rules/compensacao.js
           test -f rules/fechamento.js
+          test -f api/repository.js
+          test -f api/services/apontamentos.js
+          test -f api/services/colaboradores.js
+          test -f api/services/auditoria.js
       - name: Check JavaScript syntax
         run: npm run check
       - name: Run automated tests
@@ -41,4 +45,4 @@ jobs:
       - name: Repository summary
         run: |
           echo "Banco de Horas CI OK"
-          echo "Files: $(find . -maxdepth 2 -type f | wc -l)"
+          echo "Files: $(find . -maxdepth 3 -type f | wc -l)"

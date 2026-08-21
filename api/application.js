@@ -1,0 +1,32 @@
+import { createPostgresPool } from './postgres-pool.js';
+import { createAppRepository } from './repository-factory.js';
+import { createPostgresAuth } from './auth-postgres.js';
+import { createApi } from './http.js';
+import { AuditoriaService } from './services/auditoria.js';
+import { ColaboradoresService } from './services/colaboradores.js';
+import { ApontamentosService } from './services/apontamentos.js';
+import { BancoHorasService } from './services/banco-horas.js';
+import { FechamentoService } from './services/fechamento.js';
+import { createFeriasService, createFolgasService, createFeriadosService } from './services/ausencias.js';
+import { RelatoriosService } from './services/relatorios.js';
+import { ExportacaoService } from './services/exportacao.js';
+import { closeMonth } from '../rules/fechamento.js';
+
+export const createApplication = ({ pool = null, tokenSecret = process.env.AUTH_TOKEN_SECRET, config = {} } = {}) => {
+  const dbPool = pool || createPostgresPool();
+  const repository = createAppRepository({ env: 'production', pool: dbPool });
+  const auditoria = new AuditoriaService(repository);
+  const actor = () => null;
+  const colaboradores = new ColaboradoresService(repository, auditoria, actor);
+  const apontamentos = new ApontamentosService(repository, config, auditoria, actor);
+  const fechamentos = new FechamentoService(repository, auditoria);
+  const bancoHoras = new BancoHorasService(repository, closeMonth);
+  const ferias = createFeriasService(repository);
+  const folgas = createFolgasService(repository);
+  const feriados = createFeriadosService(repository);
+  const relatorios = new RelatoriosService(repository);
+  const exportacao = new ExportacaoService(relatorios);
+  const auth = createPostgresAuth({ repository, tokenSecret });
+  const api = createApi({ colaboradores, apontamentos, bancoHoras, fechamentos, ferias, folgas, feriados, relatorios, exportacao, auth });
+  return { api, pool: dbPool, repository, services: { colaboradores, apontamentos, bancoHoras, fechamentos, ferias, folgas, feriados, relatorios, exportacao }, auth };
+};

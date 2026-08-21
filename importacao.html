@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Importação XLS — Banco de Horas</title>
+  <style>
+    body{font:14px Arial,sans-serif;background:#f6f7f9;color:#111827;margin:0;padding:24px}
+    main{max-width:1100px;margin:auto}.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin-bottom:16px}
+    h1{margin-top:0}.muted{color:#6b7280}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.kpi{padding:14px;border:1px solid #e5e7eb;border-radius:8px}.kpi b{display:block;font-size:22px;margin-top:5px}
+    button{border:1px solid #d1d5db;background:#fff;border-radius:8px;padding:9px 13px;cursor:pointer}.primary{background:#2563eb;color:#fff;border-color:#2563eb}.danger{color:#b91c1c}.ok{color:#15803d}.warn{color:#a16207}
+    table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:9px;border-bottom:1px solid #e5e7eb;font-size:12px}
+    #preview,#confirm{display:none}.actions{display:flex;gap:8px;margin-top:14px}@media(max-width:700px){.grid{grid-template-columns:1fr 1fr}}
+  </style>
+</head>
+<body>
+<main>
+  <div class="card">
+    <h1>Importar Apontamento.xls</h1>
+    <p class="muted">A planilha será analisada antes de qualquer gravação. Nenhum registro é importado automaticamente.</p>
+    <input id="file" type="file" accept=".xls,.xlsx">
+    <div class="actions"><button id="analyze" class="primary" disabled>Analisar planilha</button><a href="index.html"><button type="button">Voltar</button></a></div>
+  </div>
+  <section id="preview" class="card">
+    <h2>Prévia da importação</h2>
+    <div id="diagnostics" class="grid"></div>
+    <h3>Parâmetros</h3><div id="params"></div>
+    <h3>Apontamentos</h3><div style="overflow:auto;max-height:420px"><table><thead><tr><th>Linha</th><th>Data</th><th>Ocorrência</th><th>Entrada</th><th>Saída</th><th>Total</th><th>Extra</th><th>Atraso</th><th>Noturno</th></tr></thead><tbody id="rows"></tbody></table></div>
+    <div id="messages"></div>
+    <div class="actions"><button id="confirm" class="primary">Confirmar importação</button><button id="cancel">Cancelar</button></div>
+  </section>
+</main>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script type="module">
+  import { importApontamentoWorkbook, toSystemRecords } from './importadores/apontamento-xls.js';
+  const file = document.getElementById('file');
+  const analyze = document.getElementById('analyze');
+  const preview = document.getElementById('preview');
+  const confirm = document.getElementById('confirm');
+  const cancel = document.getElementById('cancel');
+  let result = null;
+
+  const fmt = (minutes) => minutes == null ? '—' : `${String(Math.floor(Math.abs(minutes)/60)).padStart(2,'0')}:${String(Math.abs(minutes)%60).padStart(2,'0')}`;
+  file.addEventListener('change', () => { analyze.disabled = !file.files?.[0]; });
+  analyze.addEventListener('click', async () => {
+    const buffer = await file.files[0].arrayBuffer();
+    const workbook = XLSX.read(buffer, { type:'array', cellDates:true });
+    result = importApontamentoWorkbook(workbook);
+    preview.style.display = 'block';
+    confirm.style.display = result.diagnostics.valid ? 'inline-block' : 'none';
+    diagnostics.innerHTML = `<div class="kpi"><span>Registros</span><b>${result.records?.length || 0}</b></div><div class="kpi"><span>Erros</span><b class="${result.diagnostics.errors.length?'danger':'ok'}">${result.diagnostics.errors.length}</b></div><div class="kpi"><span>Avisos</span><b class="${result.diagnostics.warnings.length?'warn':'ok'}">${result.diagnostics.warnings.length}</b></div><div class="kpi"><span>Resultado</span><b class="${result.diagnostics.valid?'ok':'danger'}">${result.diagnostics.valid?'Válido':'Bloqueado'}</b></div>`;
+    params.innerHTML = `<p><b>${result.metadata.name || 'Sem nome'}</b> — ${result.metadata.periodoInicio || '—'} até ${result.metadata.periodoFim || '—'}</p><p>Carga mensal: ${fmt(result.metadata.monthlyMinutes)} · Seg-Qui: ${fmt(result.metadata.segQui)} · Sexta: ${fmt(result.metadata.sexta)} · Sábado: ${fmt(result.metadata.sabado)} · Tolerância: ${fmt(result.metadata.tolerancia)}</p>`;
+    rows.innerHTML = (result.records || []).map(r => `<tr><td>${r.sourceRow}</td><td>${r.data}</td><td>${r.ocorrencia}</td><td>${r.entrada1||'—'}</td><td>${r.saida2||r.saida1||'—'}</td><td>${fmt(r.horasTotais)}</td><td>${fmt(r.horasExtras)}</td><td>${fmt(r.faltasAtrasos)}</td><td>${fmt(r.adicionalNoturno)}</td></tr>`).join('');
+    messages.innerHTML = [...result.diagnostics.errors.map(x=>`<p class="danger">✕ ${x.message}</p>`), ...result.diagnostics.warnings.map(x=>`<p class="warn">⚠ ${x.message}</p>`)].join('');
+  });
+  cancel.addEventListener('click', () => { result=null; preview.style.display='none'; confirm.style.display='none'; file.value=''; analyze.disabled=true; });
+  confirm.addEventListener('click', () => {
+    const raw = JSON.parse(localStorage.getItem('BH_DB_V5') || 'null') || { config:{seg:'09:00',sex:'08:00',tol:'00:15',sab:'00:00'}, colaboradores:[], apontamentos:[], ferias:[], folgas:[] };
+    let collaborator = raw.colaboradores[0];
+    if (!collaborator) {
+      collaborator = { id:'c-xls-'+Date.now(), nome:result.metadata.name || 'Importado do XLS', salario:result.metadata.salary || 0, seg:`${String(Math.floor((result.metadata.segQui||0)/60)).padStart(2,'0')}:${String((result.metadata.segQui||0)%60).padStart(2,'0')}`, sex:`${String(Math.floor((result.metadata.sexta||0)/60)).padStart(2,'0')}:${String((result.metadata.sexta||0)%60).padStart(2,'0')}`, tol:`${String(Math.floor((result.metadata.tolerancia||0)/60)).padStart(2,'0')}:${String((result.metadata.tolerancia||0)%60).padStart(2,'0')}`, active:true };
+      raw.colaboradores.push(collaborator);
+    }
+    const imported = toSystemRecords(result, collaborator.id);
+    const existing = new Set(raw.apontamentos.map(p => `${p.cid}|${p.date}`));
+    const fresh = imported.filter(p => !existing.has(`${p.cid}|${p.date}`));
+    raw.apontamentos.push(...fresh);
+    localStorage.setItem('BH_DB_V5', JSON.stringify(raw));
+    alert(`Importação concluída: ${fresh.length} registros novos. ${imported.length-fresh.length} duplicados foram ignorados.`);
+    confirm.disabled=true;
+  });
+</script>
+</body>
+</html>

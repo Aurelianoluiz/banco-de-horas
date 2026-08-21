@@ -12,7 +12,7 @@ export function monthlySummary(points, collaboratorId, competencia) {
     }, { creditos: 0, debitos: 0 });
 }
 
-export function closeMonth({ points=[], collaboratorId, competencia, saldoAnterior=0, fechadoEm=new Date().toISOString() }) {
+export function closeMonth({ points = [], collaboratorId, competencia, saldoAnterior = 0, fechadoEm = new Date().toISOString() }) {
   if (!collaboratorId) throw new Error('Colaborador obrigatório.');
   if (!/^\d{4}-\d{2}$/.test(competencia)) throw new Error(`Competência inválida: ${competencia}`);
 
@@ -20,7 +20,7 @@ export function closeMonth({ points=[], collaboratorId, competencia, saldoAnteri
   const saldoFinal = saldoAnterior + summary.creditos - summary.debitos;
 
   return {
-    colaboradorId,
+    colaboradorId: collaboratorId,
     competencia,
     saldoAnterior,
     creditos: summary.creditos,
