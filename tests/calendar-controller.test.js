@@ -15,14 +15,17 @@ test('calendario consolida apontamento, feriado, folga e ferias', async () => {
   dataAdapter.loadFolgas = async () => [{ data: '2026-08-25', motivo: 'Compensação' }];
   dataAdapter.loadFeriados = async () => [{ data: '2026-08-21', descricao: 'Feriado local' }];
 
-  const state = await calendarController.load({ year: 2026, month: 8 });
-  assert.equal(state.events.length, 6);
-  assert.deepEqual(state.eventsForDate, undefined);
-  assert.equal(calendarController.eventsForDate('2026-08-21')[0].type, 'feriado');
-  assert.equal(calendarController.eventsForDate('2026-08-20')[0].type, 'ferias');
-
-  dataAdapter.loadApontamentos = originals.apontamentos;
-  dataAdapter.loadFerias = originals.ferias;
-  dataAdapter.loadFolgas = originals.folgas;
-  dataAdapter.loadFeriados = originals.feriados;
+  try {
+    const state = await calendarController.load({ year: 2026, month: 8 });
+    assert.equal(state.events.length, 6);
+    assert.equal(calendarController.eventsForDate('2026-08-21')[0].type, 'feriado');
+    assert.equal(calendarController.eventsForDate('2026-08-20')[0].type, 'ferias');
+    assert.equal(calendarController.eventsForDate('2026-08-25')[0].type, 'folga');
+    assert.equal(calendarController.eventsForDate('2026-08-18')[0].type, 'apontamento');
+  } finally {
+    dataAdapter.loadApontamentos = originals.apontamentos;
+    dataAdapter.loadFerias = originals.ferias;
+    dataAdapter.loadFolgas = originals.folgas;
+    dataAdapter.loadFeriados = originals.feriados;
+  }
 });
