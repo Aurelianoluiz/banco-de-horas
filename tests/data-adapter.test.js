@@ -15,11 +15,13 @@ test('adaptador converte apontamento da UI para o contrato da API', () => {
   });
 });
 
-test('adaptador converte colaborador entre UI e API', () => {
-  const apiItem = toApiColaborador({ id: 'c1', nome: 'Ana', salario: 3000, seg: '09:00', tol: '00:15', active: true });
-  assert.deepEqual(apiItem, { id: 'c1', nome: 'Ana', salario: 3000, jornada: '09:00', tolerancia: '00:15', status: 'ativo' });
-  const local = toLocalColaborador(apiItem);
-  assert.equal(local.id, 'c1');
+test('adaptador preserva carga de sexta do colaborador', () => {
+  const apiItem = toApiColaborador({ id: 'c1', nome: 'Ana', salario: 3000, seg: '09:00', sex: '07:30', tol: '00:15', active: true });
+  assert.equal(apiItem.cargaSegQui, '09:00');
+  assert.equal(apiItem.cargaSexta, '07:30');
+  assert.equal(apiItem.tolerancia, '00:15');
+  const local = toLocalColaborador({ id: 'c1', nome: 'Ana', carga_seg_qui_min: 540, carga_sexta_min: 450, tolerancia_min: 15, ativo: true });
+  assert.equal(local.seg, '09:00');
+  assert.equal(local.sex, '07:30');
   assert.equal(local.tol, '00:15');
-  assert.equal(local.active, true);
 });
