@@ -11,8 +11,8 @@ export class ApontamentosService {
     this.actor = actor;
   }
 
-  async registrar(evento) {
-    if (this.auditoria) return this.auditoria.registrar({ usuarioId: this.actor(), ...evento });
+  async registrar(evento, actorId = null) {
+    if (this.auditoria) return this.auditoria.registrar({ usuarioId: actorId || this.actor(), ...evento });
     return null;
   }
 
@@ -37,7 +37,7 @@ export class ApontamentosService {
     return this.repository.get('apontamentos', id);
   }
 
-  async criar(input) {
+  async criar(input, actorId = null) {
     if (!input?.colaboradorId) throw new TypeError('colaboradorId é obrigatório');
     if (!input?.data) throw new TypeError('data é obrigatória');
     const colaborador = await this.obterColaborador(input.colaboradorId);
@@ -52,26 +52,26 @@ export class ApontamentosService {
       ocorrencia: input.ocorrencia || 'Normal',
       ...result
     });
-    await this.registrar({ acao: 'CRIAR', entidade: 'apontamentos', registroId: item.id, depois: item });
+    await this.registrar({ acao: 'CRIAR', entidade: 'apontamentos', registroId: item.id, depois: item }, actorId);
     return item;
   }
 
-  async atualizar(id, changes) {
+  async atualizar(id, changes, actorId = null) {
     const current = await this.obter(id);
     if (!current) return null;
     const merged = { ...current, ...changes };
     const colaborador = await this.obterColaborador(merged.colaboradorId);
     const result = calculatePoint(merged, this.config, colaborador);
     const depois = await this.repository.update('apontamentos', id, { ...changes, ...result });
-    await this.registrar({ acao: 'ALTERAR', entidade: 'apontamentos', registroId: id, antes: current, depois });
+    await this.registrar({ acao: 'ALTERAR', entidade: 'apontamentos', registroId: id, antes: current, depois }, actorId);
     return depois;
   }
 
-  async excluir(id) {
+  async excluir(id, actorId = null) {
     const antes = await this.obter(id);
     if (!antes) return false;
     const removido = await this.repository.remove('apontamentos', id);
-    if (removido) await this.registrar({ acao: 'EXCLUIR', entidade: 'apontamentos', registroId: id, antes });
+    if (removido) await this.registrar({ acao: 'EXCLUIR', entidade: 'apontamentos', registroId: id, antes }, actorId);
     return removido;
   }
 }
