@@ -35,7 +35,7 @@ export const createApi = ({ colaboradores, apontamentos, bancoHoras, fechamentos
     route('GET', /^\/api\/relatorios\/fechamento$/, async ({ url }) => json(await relatorios.fechamento({ colaboradorId: url.searchParams.get('colaboradorId') || undefined, competencia: url.searchParams.get('competencia') })), ['relatorios', 'read']),
     route('GET', /^\/api\/relatorios\/atrasos$/, async ({ url }) => json(await relatorios.atrasos({ colaboradorId: url.searchParams.get('colaboradorId') || undefined, competencia: url.searchParams.get('competencia') })), ['relatorios', 'read']),
     route('GET', /^\/api\/relatorios\/export\/([a-z-]+)$/, async ({ params, url }) => { const tipo = params[1]; const allowed = new Set(['espelho-ponto','banco-horas','ferias','folgas','fechamento','atrasos']); if (!allowed.has(tipo)) return json({ error:'Relatório não suportado para exportação' },400); const p=Object.fromEntries(url.searchParams); const m=tipo==='espelho-ponto'?'espelhoPonto':tipo.replace(/-([a-z])/g,(_,l)=>l.toUpperCase()); const buffer=await exportacao.xlsx(m,p); return binary(buffer,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',200,`relatorio-${tipo}.xlsx`); }, ['relatorios','read']),
-    route('GET', /^\/api\/relatorios\/pdf\/([a-z-]+)$/, async ({ params, url }) => { const tipo=params[1]; const allowed=new Set(['espelho-ponto','banco-horas','ferias','folgas','fechamento','atrasos']); if(!allowed.has(tipo)) return json({error:'Relatório não suportado para PDF'},400); const p=Object.fromEntries(url.searchParams); const m=tipo==='espelho-ponto'?'espelhoPonto':tipo.replace(/-([a-z])/g,(_,l)=>l.toUpperCase()); const buffer=await exportacaoPdf.pdf(m,p); return binary(buffer,'application/pdf',200,`relatorio-${tipo}.pdf`); }, ['relatorios','read'])
+    route('GET', /^\/api\/relatorios\/pdf\/([a-z-]+)$/, async ({ params, url }) => { const tipo=params[1]; const allowed=new Set(['espelho-ponto','banco-horas','ferias','folgas','fechamento','atrasos']); if (!allowed.has(tipo)) return json({error:'Relatório não suportado para PDF'},400); const p=Object.fromEntries(url.searchParams); const m=tipo==='espelho-ponto'?'espelhoPonto':tipo.replace(/-([a-z])/g,(_,l)=>l.toUpperCase()); const buffer=await exportacaoPdf.pdf(m,p); return binary(buffer,'application/pdf',200,`relatorio-${tipo}.pdf`); }, ['relatorios','read'])
   ];
   return async ({ method='GET', url:rawUrl='/', body={}, token=null }={}) => {
     const url=new URL(rawUrl,'http://localhost'); const match=routes.find(item=>item.method===method&&item.pattern.test(url.pathname)); if(!match) return json({error:'Rota não encontrada'},404); const params=match.pattern.exec(url.pathname);
@@ -46,7 +46,9 @@ export const createApi = ({ colaboradores, apontamentos, bancoHoras, fechamentos
       return await match.handler({url,body,params,identity});
     } catch(error) {
       const clientError = error instanceof TypeError || Number(error?.statusCode) === 400;
+      const conflictError = error?.code === 'MONTH_ALREADY_CLOSED' || error?.code === '23505';
       console.error(error);
+      if (conflictError) return json({ error: error.code === 'MONTH_ALREADY_CLOSED' ? error.message : 'Conflito de dados' }, 409);
       return json({ error: clientError ? error.message : 'Erro interno do servidor' }, clientError ? 400 : 500);
     }
   };
