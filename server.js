@@ -1,6 +1,6 @@
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
-import { extname, join, normalize, resolve } from 'node:path';
+import { extname, join, resolve } from 'node:path';
 import { createApplication } from './api/application.js';
 
 const port = Number(process.env.PORT || 3000);
@@ -17,9 +17,16 @@ const MIME = {
 const staticFile = async (pathname) => {
   const decoded = decodeURIComponent(pathname === '/' ? '/index.html' : pathname);
   const candidate = resolve(join(root, decoded));
-  if (candidate !== root && !candidate.startsWith(`${root}${process.platform === 'win32' ? '\\' : '/'}`)) return null;
-  try { return { body: await readFile(candidate), type: MIME[extname(candidate).toLowerCase()] || 'application/octet-stream' }; }
-  catch (error) { if (error.code === 'ENOENT') return null; throw error; }
+  if (candidate !== root && !candidate.startsWith(`${root}/`) && !candidate.startsWith(`${root}\\`)) return null;
+  try {
+    const body = await readFile(candidate);
+    const type = MIME[extname(candidate).toLowerCase()] || 'application/octet-stream';
+    if (type.startsWith('text/html')) {
+      const guard = '<script type="module" src="/web/auth-guard.js"></script>';
+      return { body: Buffer.from(body.toString('utf8').replace(/<\/body>/i, `${guard}</body>`)), type };
+    }
+    return { body, type };
+  } catch (error) { if (error.code === 'ENOENT') return null; throw error; }
 };
 
 const { api, pool } = createApplication();
@@ -44,16 +51,10 @@ const server = createServer(async (req, res) => {
     }
 
     if (req.method !== 'GET' && req.method !== 'HEAD') {
-      res.writeHead(405, { allow: 'GET, HEAD' });
-      res.end();
-      return;
+      res.writeHead(405, { allow: 'GET, HEAD' }); res.end(); return;
     }
     const asset = await staticFile(new URL(req.url || '/', 'http://localhost').pathname);
-    if (!asset) {
-      res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' });
-      res.end('Not Found');
-      return;
-    }
+    if (!asset) { res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' }); res.end('Not Found'); return; }
     res.writeHead(200, { 'content-type': asset.type, 'cache-control': 'no-cache' });
     if (req.method === 'HEAD') { res.end(); return; }
     res.end(asset.body);
