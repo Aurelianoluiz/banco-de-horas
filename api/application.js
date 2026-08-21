@@ -10,6 +10,9 @@ import { FechamentoService } from './services/fechamento.js';
 import { createFeriasService, createFolgasService, createFeriadosService } from './services/ausencias.js';
 import { RelatoriosService } from './services/relatorios.js';
 import { ExportacaoService } from './services/exportacao.js';
+import { ConfiguracoesService } from './services/configuracoes.js';
+import { AtestadosService } from './services/atestados.js';
+import { AjustesService } from './services/ajustes.js';
 import { closeMonth } from '../rules/fechamento.js';
 
 export const createApplication = ({ pool = null, tokenSecret = process.env.AUTH_TOKEN_SECRET, config = {} } = {}) => {
@@ -26,7 +29,10 @@ export const createApplication = ({ pool = null, tokenSecret = process.env.AUTH_
   const feriados = createFeriadosService(repository);
   const relatorios = new RelatoriosService(repository);
   const exportacao = new ExportacaoService(relatorios);
+  const configuracoes = new ConfiguracoesService(repository);
+  const atestados = new AtestadosService(repository);
+  const ajustes = new AjustesService(repository, auditoria);
   const auth = createPostgresAuth({ repository, tokenSecret });
-  const api = createApi({ colaboradores, apontamentos, bancoHoras, fechamentos, ferias, folgas, feriados, relatorios, exportacao, auditoria, auth });
-  return { api, pool: dbPool, repository, services: { colaboradores, apontamentos, bancoHoras, fechamentos, ferias, folgas, feriados, relatorios, exportacao, auditoria }, auth };
+  const api = createApi({ colaboradores, apontamentos, bancoHoras, fechamentos, ferias, folgas, feriados, relatorios, exportacao, auditoria, configuracoes, atestados, ajustes, auth });
+  return { api, pool: dbPool, repository, services: { colaboradores, apontamentos, bancoHoras, fechamentos, ferias, folgas, feriados, relatorios, exportacao, auditoria, configuracoes, atestados, ajustes }, auth };
 };
