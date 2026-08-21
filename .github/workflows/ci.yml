@@ -20,7 +20,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
       - name: Install dependencies
         run: npm install
       - name: Validate web entrypoint
@@ -99,7 +98,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
       - name: Install PostgreSQL client
         run: |
           sudo apt-get update
@@ -169,6 +167,21 @@ jobs:
           node -e "const fs=require('fs'); const b=fs.readFileSync('/tmp/relatorio.pdf','utf8'); if(!b.startsWith('%PDF-')) process.exit(1)"
       - name: Run controlled load smoke
         run: npm run load:smoke
-      - name: Verify server logs on failure only
+      - name: Upload homologation diagnostics
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: homologacao-diagnostics-${{ github.run_id }}
+          path: |
+            /tmp/banco-de-horas.log
+            /tmp/login*.json
+            /tmp/anonymous.json
+            /tmp/banco-horas.json
+            /tmp/fechamento.json
+            /tmp/auditoria.json
+            /tmp/relatorio.xlsx
+            /tmp/relatorio.pdf
+          if-no-files-found: ignore
+      - name: Show server logs on failure
         if: ${{ failure() }}
         run: cat /tmp/banco-de-horas.log
