@@ -4,6 +4,7 @@ const state = {
   loading: false,
   error: null,
   colaboradores: [],
+  apontamentos: [],
   cards: {
     saldoAtual: 0,
     horasPositivas: 0,
@@ -23,11 +24,18 @@ const minutesOf = (value) => {
 
 const sum = (rows, field) => rows.reduce((total, row) => total + minutesOf(row?.[field]), 0);
 
+const normalizeBalance = (item) => ({
+  saldoAtual: Number(item?.saldoFinal ?? item?.saldoAtual ?? 0),
+  creditos: Number(item?.creditos ?? 0),
+  debitos: Number(item?.debitos ?? 0)
+});
+
 export const dashboardController = {
   getState() {
     return {
       ...state,
       colaboradores: [...state.colaboradores],
+      apontamentos: [...state.apontamentos],
       cards: { ...state.cards }
     };
   },
@@ -37,18 +45,21 @@ export const dashboardController = {
     state.error = null;
     try {
       state.colaboradores = await dataAdapter.loadColaboradores();
-      const ids = colaboradorId ? [colaboradorId] : state.colaboradores.map((item) => item.id);
+      state.apontamentos = await dataAdapter.loadApontamentos({ colaboradorId, dateFrom: competencia ? `${competencia}-01` : undefined, dateTo: competencia ? `${competencia}-31` : undefined });
+
+      const ids = colaboradorId ? [colaboradorId] : state.colaboradores.filter((item) => item.active !== false).map((item) => item.id);
       const balances = await Promise.all(ids.map((id) => dataAdapter.loadBancoHoras(id, competencia)));
-      const rows = balances.flatMap((item) => Array.isArray(item) ? item : (item?.rows || [item]));
-      const saldoAtual = sum(rows, 'saldoAtual');
-      const creditos = sum(rows, 'creditos');
-      const debitos = sum(rows, 'debitos');
-      const horasTrabalhadas = sum(rows, 'horasTrabalhadas');
+      const normalized = balances.map(normalizeBalance);
+
+      const saldoAtual = normalized.reduce((total, item) => total + item.saldoAtual, 0);
+      const creditos = normalized.reduce((total, item) => total + Math.max(0, item.creditos), 0);
+      const debitos = normalized.reduce((total, item) => total + Math.max(0, item.debitos), 0);
+
       state.cards = {
         saldoAtual,
-        horasPositivas: Math.max(creditos, 0),
-        horasNegativas: Math.abs(Math.min(debitos, 0)),
-        horasTrabalhadas
+        horasPositivas: creditos,
+        horasNegativas: debitos,
+        horasTrabalhadas: sum(state.apontamentos, 'minutosTrabalhados') || sum(state.apontamentos, 'horasTrabalhadas')
       };
       return this.getState();
     } catch (error) {
