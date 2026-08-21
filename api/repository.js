@@ -25,9 +25,10 @@ export class MemoryRepository {
     const predicate = typeof options === 'function' ? options : options.predicate || ((record) => matches(record, Object.fromEntries(Object.entries(options).filter(([key]) => !['limit', 'offset', 'where'].includes(key)))));
     return paginate([...this.collection(name).values()].filter(predicate).map((record) => structuredClone(record)), options);
   }
-  listApontamentosByRange({ inicio, fim, colaboradorId } = {}) {
-    return this.list('apontamentos', { predicate: (record) => String(record.data || '') >= inicio && String(record.data || '') < fim && (!colaboradorId || record.colaboradorId === colaboradorId), limit: 500 });
+  listApontamentos({ colaboradorId, inicio, fim, limit, offset } = {}) {
+    return this.list('apontamentos', { predicate: (record) => (!colaboradorId || record.colaboradorId === colaboradorId) && (!inicio || String(record.data || '') >= inicio) && (!fim || String(record.data || '') <= fim), limit, offset });
   }
+  listApontamentosByRange(options = {}) { return this.listApontamentos({ ...options, fim: options.fim ? String(options.fim).slice(0, 10) : undefined }); }
   get(name, id) { const record = this.collection(name).get(assertId(id)); return record ? structuredClone(record) : null; }
   findById(name, id) { return this.get(name, id); }
   findOne(name, predicate = {}) { return this.list(name, (record) => Object.entries(predicate).every(([key, value]) => record[key] === value))[0] || null; }
