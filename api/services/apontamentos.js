@@ -22,21 +22,15 @@ export class ApontamentosService {
   }
 
   async listar(filtro = {}) {
-    const limit = filtro.limit === undefined ? undefined : Number(filtro.limit);
-    const offset = filtro.offset === undefined ? undefined : Number(filtro.offset);
-    const hasRange = filtro.inicio || filtro.fim;
-    if (hasRange) {
-      if (!filtro.inicio || !filtro.fim) throw new TypeError('inicio e fim são obrigatórios para filtro por período');
-      if (typeof this.repository.listApontamentosByRange === 'function') {
-        const records = await this.repository.listApontamentosByRange({ inicio: filtro.inicio, fim: String(filtro.fim).slice(0, 10) + 'Z', colaboradorId: filtro.colaboradorId, limit, offset });
-        return records;
-      }
-    }
-    return this.repository.list('apontamentos', {
-      ...(filtro.colaboradorId ? { colaborador_id: filtro.colaboradorId } : {}),
-      ...(Number.isFinite(limit) ? { limit } : {}),
-      ...(Number.isFinite(offset) ? { offset } : {})
-    });
+    const options = {
+      colaboradorId: filtro.colaboradorId || undefined,
+      inicio: filtro.inicio || undefined,
+      fim: filtro.fim || undefined,
+      limit: filtro.limit,
+      offset: filtro.offset
+    };
+    if (typeof this.repository.listApontamentos === 'function') return this.repository.listApontamentos(options);
+    return this.repository.list('apontamentos', { limit: filtro.limit, offset: filtro.offset });
   }
 
   async obter(id) {
