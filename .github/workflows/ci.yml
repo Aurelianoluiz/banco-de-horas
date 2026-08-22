@@ -15,6 +15,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
       - name: Validate HTML
         run: |
           test -f index.html
@@ -32,6 +36,20 @@ jobs:
         run: npm run check
       - name: Run automated tests
         run: npm test
+      - name: Start web server
+        run: |
+          npm start > /tmp/banco-horas.log 2>&1 &
+          echo $! > /tmp/banco-horas.pid
+          for i in {1..20}; do curl -fsS http://127.0.0.1:3000/health && break || sleep 1; done
+      - name: Smoke test web
+        run: |
+          curl -fsS http://127.0.0.1:3000/ | grep -q 'Banco de Horas'
+          curl -fsS http://127.0.0.1:3000/app.js | grep -q 'BH_DB_V5'
+      - name: Stop web server
+        if: always()
+        run: |
+          if test -f /tmp/banco-horas.pid; then kill "$(cat /tmp/banco-horas.pid)" || true; fi
+          cat /tmp/banco-horas.log || true
       - name: Check required project sections
         run: |
           grep -q 'Banco de Horas' index.html
@@ -41,4 +59,4 @@ jobs:
       - name: Repository summary
         run: |
           echo "Banco de Horas CI OK"
-          echo "Files: $(find . -maxdepth 2 -type f | wc -l)"
+          echo "Files: $(find . -maxdepth 3 -type f | wc -l)"
