@@ -34,8 +34,11 @@ const staticFile = async (pathname) => {
   try {
     const body = await readFile(candidate); const type = MIME[extname(candidate).toLowerCase()] || 'application/octet-stream';
     if (type.startsWith('text/html')) {
-      const bootstrap = '<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#2563eb"><link rel="stylesheet" href="/web/responsive.css"><script type="module" src="/web/auth-guard.js"></script><script type="module" src="/web/pwa.js"></script>';
-      const indexCompat = decoded === '/index.html' ? '<script src="/web/index-compat.js"></script>' : '';
+      const pageName = decoded.toLowerCase();
+      const bootstrap = '<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#2563eb"><link rel="stylesheet" href="/web/responsive.css">' +
+        (pageName !== '/login.html' ? '<link rel="stylesheet" href="/web/minimal-sidebar.css"><script src="/web/minimal-sidebar.js" defer></script>' : '') +
+        '<script type="module" src="/web/auth-guard.js"></script><script type="module" src="/web/pwa.js"></script>';
+      const indexCompat = pageName === '/index.html' ? '<script src="/web/index-compat.js"></script>' : '';
       return { body: Buffer.from(body.toString('utf8').replace(/<\\/head>/i, `${bootstrap}${indexCompat}</head>`)), type };
     }
     return { body, type };
@@ -78,13 +81,13 @@ const server = createServer(async (req, res) => {
     }
     if (req.method !== 'GET' && req.method !== 'HEAD') { send(405, { allow: 'GET, HEAD' }, ''); return; }
     const asset = await staticFile(pathname);
-    if (!asset) { send(404, { 'content-type': 'text/plain; charset=utf-8' }, 'Not Found'); return; }
-    const headers = { 'content-type': asset.type, 'cache-control': asset.type.includes('javascript') || asset.type.includes('text/css') ? 'no-cache' : 'public, max-age=3600' };
-    if (req.method === 'HEAD') { send(200, headers, ''); return; } send(200, headers, asset.body);
-  } catch (error) { const status = Number(error.statusCode) || 500; console.error(error); send(status, { 'content-type': 'application/json; charset=utf-8' }, JSON.stringify({ error: status === 413 ? 'Payload muito grande' : 'Erro interno do servidor' })); }
+    if (!asset) { send(404, { 'content-type': 'text/plain; charset=utf-8' }, 'Not found'); return; }
+    send(200, { 'content-type': asset.type, 'cache-control': asset.type.startsWith('text/html') ? 'no-store' : 'public, max-age=3600' }, asset.body);
+  } catch (error) {
+    console.error(error);
+    send(error.statusCode || 500, { 'content-type': 'application/json; charset=utf-8' }, JSON.stringify({ error: error.message || 'Erro interno' }));
+  } finally {
+    if (loginBuckets.size > 1000) cleanupLoginBuckets();
+  }
 });
-const cleanupTimer = setInterval(cleanupLoginBuckets, LOGIN_WINDOW_MS); cleanupTimer.unref();
-const shutdown = async (signal) => { clearInterval(cleanupTimer); server.close(async () => { await pool.end(); process.exit(signal === 'SIGINT' ? 130 : 143); }); };
-process.on('SIGINT', () => shutdown('SIGINT'));
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-server.listen(port, '0.0.0.0', () => console.log(`Banco de Horas ouvindo na porta ${port}`));
+server.listen(port, '0.0.0.0', () => console.log(`Banco de Horas ouvindo em http://127.0.0.1:${port}/`));
