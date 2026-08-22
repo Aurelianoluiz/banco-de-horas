@@ -32,23 +32,19 @@ function Read-Asset([string]$FilePath) {
     $text = [Text.Encoding]::UTF8.GetString($data)
     $pageName = [IO.Path]::GetFileName($FilePath).ToLowerInvariant()
     $injection = '<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#2563eb"><link rel="stylesheet" href="/web/responsive.css">'
-    if ($pageName -ne 'login.html' -and $text -notmatch 'web/minimal-sidebar\.css') {
-      $injection += '<link rel="stylesheet" href="/web/minimal-sidebar.css"><link rel="stylesheet" href="/web/minimal-theme.css">'
-    }
+    $injection += '<script src="/web/local-api-bridge.js"></script>'
     if ($pageName -ne 'login.html') {
-      $injection += '<script src="/web/local-api-bridge.js"></script><script src="/web/auth-guard.js"></script><script src="/web/minimal-sidebar.js" defer></script>'
+      $injection += '<link rel="stylesheet" href="/web/minimal-sidebar.css"><link rel="stylesheet" href="/web/minimal-theme.css"><script src="/web/auth-guard.js"></script><script src="/web/minimal-sidebar.js" defer></script>'
     }
-    if ($pageName -eq 'index.html' -and $text -notmatch 'web/index-compat\.js') {
-      $injection += '<script src="/web/index-compat.js"></script>'
-    }
-    if ($text -notmatch 'manifest.webmanifest') {
+    if ($pageName -eq 'index.html') { $injection += '<script src="/web/index-compat.js"></script>' }
+    if ($text -notmatch 'web/local-api-bridge\.js') {
       $text = $text -replace '(?i)</head>', "$injection</head>"
     } else {
       if ($pageName -ne 'login.html' -and $text -notmatch 'web/minimal-sidebar\.css') {
         $text = $text -replace '(?i)</head>', '<link rel="stylesheet" href="/web/minimal-sidebar.css"><link rel="stylesheet" href="/web/minimal-theme.css"></head>'
       }
-      if ($pageName -ne 'login.html' -and $text -notmatch 'web/local-api-bridge\.js') {
-        $text = $text -replace '(?i)</head>', '<script src="/web/local-api-bridge.js"></script><script src="/web/auth-guard.js"></script></head>'
+      if ($pageName -ne 'login.html' -and $text -notmatch 'web/auth-guard\.js') {
+        $text = $text -replace '(?i)</head>', '<script src="/web/auth-guard.js"></script></head>'
       }
       if ($pageName -ne 'login.html' -and $text -notmatch 'web/minimal-sidebar\.js') {
         $text = $text -replace '(?i)</head>', '<script src="/web/minimal-sidebar.js" defer></script></head>'
