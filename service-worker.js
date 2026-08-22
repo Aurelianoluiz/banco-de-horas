@@ -1,16 +1,17 @@
-const CACHE_NAME = 'banco-horas-v2';
+const CACHE_NAME = 'banco-horas-v3';
 const APP_SHELL = [
   '/',
-  '/app-shell.html',
-  '/login.html',
+  '/index.html',
+  '/style.css',
+  '/app.js',
   '/manifest.webmanifest',
-  '/web/responsive.css',
-  '/web/auth-session.js',
-  '/web/auth-guard.js',
-  '/web/api-client.js',
-  '/web/dashboard-controller.js',
-  '/web/dashboard-view.js',
-  '/web/pwa.js'
+  '/service-worker.js',
+  '/data-model.js',
+  '/app-config.js',
+  '/absence-calendar.js',
+  '/integration.js',
+  '/rules/jornada.js',
+  '/rules/fechamento.js'
 ];
 
 self.addEventListener('install', (event) => {
@@ -30,5 +31,5 @@ self.addEventListener('fetch', (event) => {
     const copy = response.clone();
     caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => {});
     return response;
-  }).catch(() => caches.match(request).then((cached) => cached || caches.match('/app-shell.html'))));
+  }).catch(() => caches.match(request).then((cached) => cached || caches.match('/index.html'))));
 });
