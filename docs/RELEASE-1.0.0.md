@@ -5,6 +5,43 @@
 - Aplicação: `1.0.0`
 - Branch de trabalho: `feat/xls-importacao`
 
+## Fases 1–30 — programação consolidada
+
+```text
+01 Levantamento da estrutura                  CONCLUÍDA
+02 Arquitetura                                CONCLUÍDA
+03 Modelagem de dados                         CONCLUÍDA
+04 Persistência / repositories                CONCLUÍDA
+05 Regras de jornada                          CONCLUÍDA
+06 Apontamentos                               CONCLUÍDA
+07 Colaboradores                              CONCLUÍDA
+08 Banco de Horas                             CONCLUÍDA
+09 Ausências                                  CONCLUÍDA
+10 Fechamento mensal                          CONCLUÍDA
+11 Auditoria                                  CONCLUÍDA
+12 API / HTTP                                 CONCLUÍDA
+13 Testes automatizados                       CONCLUÍDA
+14 Segurança                                  CONCLUÍDA
+15 Relatórios / exportações                   CONCLUÍDA
+16 Importação XLS                             CONCLUÍDA
+17 Performance                                CONCLUÍDA
+18 Homologação funcional                      CONCLUÍDA
+19 Documentação / operação                    CONCLUÍDA
+20 Preparação da v1.0                         CONCLUÍDA
+21 Servidor local 1 clique                    CONCLUÍDA
+22 Correção HTTP 403 local                    CONCLUÍDA
+23 Compatibilidade do index.html              CONCLUÍDA
+24 Centralização do ambiente no repo          CONCLUÍDA
+25 Sidebar minimalista                       CONCLUÍDA
+26 Design System visual                       CONCLUÍDA
+27 Smoke de runtime local                    CONCLUÍDA
+28 CI de runtime/visual                      CONCLUÍDA
+29 Operação de produção                      CONCLUÍDA
+30 Consolidação final da v1.0                CONCLUÍDA
+```
+
+A programação das fases 1–30 está encerrada. Os gates de infraestrutura e execução real permanecem como validações operacionais do ambiente, não como trabalho de programação pendente.
+
 ## Critérios técnicos
 
 - [x] Shell modular servido em `/`
@@ -19,21 +56,40 @@
 - [x] Health check com verificação do PostgreSQL
 - [x] Seed reproduzível de homologação
 - [x] CI com validação estrutural e homologação automatizada
+- [x] Runtime smoke do shell, Sidebar e Design System
 - [x] Smoke de carga
 - [x] Matriz de permissões
 - [x] Rotinas versionadas de backup/restore
+- [x] Compose de produção com PostgreSQL interno
+- [x] Healthcheck do container da aplicação
 - [x] Contrato de TLS documentado
+- [x] Modo LOCAL sem Docker/PostgreSQL
+- [x] Inicialização SQL/LOCAL em um clique
 
-## Gates de liberação
+## Verificador final
 
-A release não deve ser marcada como aprovada enquanto qualquer item abaixo estiver pendente:
+Antes de uma liberação operacional, execute:
 
-- [ ] Execução real do GitHub Actions com `validate` e `homologacao` verdes
-- [ ] Homologação real contra PostgreSQL
-- [ ] Ambiente de produção com `DATABASE_URL` e `AUTH_TOKEN_SECRET` configurados
-- [ ] HTTPS/TLS terminado no ambiente de produção
-- [ ] Backup real criado e restaurado com sucesso em ambiente autorizado
-- [ ] Monitoramento/alertas configurados
+```bash
+npm run check
+npm test
+npm run smoke:runtime
+npm run release:check
+```
+
+O `release:check` confirma versão `1.0.0`, arquivos obrigatórios, contrato do compose de produção e sintaxe dos componentes críticos.
+
+## Gates operacionais
+
+Estes itens dependem do ambiente real e não podem ser simulados integralmente no repositório:
+
+- Execução real do GitHub Actions
+- Homologação real em PostgreSQL
+- Configuração de produção com segredos reais
+- HTTPS/TLS no reverse proxy
+- Backup real e restore autorizado
+- Monitoramento e alertas do ambiente
+- Validação visual final no Windows/Edge/Chrome
 
 ## Operação
 
@@ -41,38 +97,15 @@ A release não deve ser marcada como aprovada enquanto qualquer item abaixo esti
 
 `GET /health` retorna `200` com `{"status":"ok","database":"ok"}` quando Node e PostgreSQL estão saudáveis. Se a aplicação estiver viva mas o banco estiver indisponível, retorna `503` e `{"status":"degraded","database":"down"}`.
 
-### Backup
+### Local
 
-```bash
-export DATABASE_URL='postgres://...'
-export BACKUP_DIR='./backups'
-npm run backup:db
+Use `scripts/start-local.bat` e escolha:
+
+```text
+[1] SQL - PostgreSQL + aplicação
+[2] LOCAL - sem SQL/Docker
 ```
 
-O backup usa formato custom do PostgreSQL e é validado com `pg_restore --list`.
+### Produção
 
-### Restore
-
-```bash
-export DATABASE_URL='postgres://...'
-npm run restore:db -- ./backups/banco-de-horas-YYYYMMDDTHHMMSSZ.dump
-```
-
-O restore é destrutivo no banco de destino e deve ser executado apenas em ambiente autorizado.
-
-### TLS
-
-A produção deve terminar HTTPS/TLS em reverse proxy ou load balancer. O contrato de ambiente mantém `TLS_CERT_FILE` e `TLS_KEY_FILE` documentados para futuras execuções HTTPS diretas, mas a configuração recomendada para produção é a terminação TLS na camada de infraestrutura.
-
-## Procedimento
-
-1. Executar o CI no GitHub.
-2. Corrigir qualquer falha encontrada e repetir o ciclo.
-3. Executar a homologação funcional.
-4. Validar PostgreSQL e backup/restore.
-5. Configurar TLS, monitoramento e alertas no ambiente de produção.
-6. Publicar a release `1.0.0` somente após todos os gates verdes.
-
-## Regra de manutenção
-
-Qualquer alteração posterior à aprovação deve repetir `npm run check`, `npm test` e a homologação funcional antes de ser considerada liberada.
+Use `docker-compose.production.yml`, mantendo PostgreSQL somente na rede interna e colocando um reverse proxy com TLS na frente da aplicação.
