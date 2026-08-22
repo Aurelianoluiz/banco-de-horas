@@ -13,6 +13,7 @@ scripts/start-local.bat
   -> servidor TCP local em 127.0.0.1:3000
   -> / usa app-shell.html
   -> /index.html usa index-compat.js
+  -> Sidebar minimalista + Design System
 ```
 
 Abra:
@@ -39,6 +40,7 @@ Docker Desktop
   -> aplicação Node
   -> /health
   -> seed:homologacao
+  -> Sidebar minimalista + Design System
 ```
 
 Abra:
@@ -120,17 +122,67 @@ O servidor LOCAL atual usa `TcpListener` em `127.0.0.1` e não `HttpListener`. I
 
 A entrada `/` serve `app-shell.html`, que é a entrada oficial modular. `index.html` permanece disponível para compatibilidade e recebe `web/index-compat.js` quando servido diretamente.
 
-## 7. Sidebar
+## 7. Sidebar e Design System
 
-O sidebar oficial está no shell modular. Para `index.html`, `web/index-compat.js` garante:
+Todos os módulos não-auth usam os mesmos arquivos:
 
-- itens de navegação visíveis no desktop;
-- referências DOM sem depender de variáveis globais implícitas do navegador;
-- fallback do menu;
-- layout responsivo;
-- largura/margem compatíveis entre sidebar e conteúdo.
+```text
+web/minimal-sidebar.css
+web/minimal-sidebar.js
+web/minimal-theme.css
+```
 
-## 8. Estrutura relevante
+O Sidebar segue o padrão minimalista de duas partes:
+
+```text
+Rail de ícones
+      +
+Painel expansível
+      +
+Busca
+      +
+Grupos
+      +
+Item ativo
+      +
+Configuração/Sessão
+```
+
+O estado expandido/recolhido fica salvo em `localStorage`.
+
+Para `index.html`, `web/index-compat.js` garante compatibilidade com a implementação legada.
+
+## 8. Smoke test do runtime
+
+Depois de iniciar SQL ou LOCAL, execute na raiz:
+
+```bash
+npm run smoke:runtime
+```
+
+Opcionalmente, para outro endereço:
+
+```bash
+BASE_URL=http://127.0.0.1:3000 npm run smoke:runtime
+```
+
+No Windows PowerShell:
+
+```powershell
+$env:BASE_URL='http://127.0.0.1:3000'; npm run smoke:runtime
+```
+
+O smoke verifica:
+
+- `/`
+- `web/minimal-sidebar.css`
+- `web/minimal-sidebar.js`
+- `web/minimal-theme.css`
+- `web/responsive.css`
+- referência do shell ao Sidebar
+- referência do shell ao Design System
+
+## 9. Estrutura relevante
 
 ```text
 app-shell.html                  entrada principal
@@ -142,19 +194,24 @@ scripts/server-local.ps1        servidor HTTP LOCAL via TcpListener
 scripts/stop-local.ps1          parada
 scripts/diagnostico-docker.ps1  diagnóstico Docker
 web/index-compat.js             compatibilidade do sidebar
+web/minimal-sidebar.css         estilo do sidebar
+web/minimal-sidebar.js          comportamento do sidebar
+web/minimal-theme.css           Design System visual
 Dockerfile                      imagem Node
 docker-compose.homologacao.yml  PostgreSQL + aplicação
 database/schema.sql             banco
 database/seed-homologacao.js    dados fictícios
+tests/runtime-http-smoke.mjs    smoke HTTP do runtime
 ```
 
-## 9. Verificações
+## 10. Verificações
 
 Antes de considerar a instalação saudável:
 
 ```bash
 npm run check
 npm test
+npm run smoke:runtime
 ```
 
 No modo SQL:
@@ -169,7 +226,7 @@ Resultado esperado:
 {"status":"ok","database":"ok"}
 ```
 
-## 10. Regras de operação
+## 11. Regras de operação
 
 - Não grave senhas, `DATABASE_URL` reais ou `AUTH_TOKEN_SECRET` reais no Git.
 - `.local/` é ignorado pelo Git e pode conter segredos/runtime.
