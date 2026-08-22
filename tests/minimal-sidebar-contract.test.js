@@ -2,11 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-test('minimal sidebar assets and server injection contract are present', async () => {
-  const [server, sidebarCss, sidebarJs] = await Promise.all([
+test('minimal sidebar and visual system contract are present in SQL and LOCAL modes', async () => {
+  const [server, localServer, sidebarCss, sidebarJs, themeCss] = await Promise.all([
     readFile(new URL('../server.js', import.meta.url), 'utf8'),
+    readFile(new URL('../scripts/server-local.ps1', import.meta.url), 'utf8'),
     readFile(new URL('../web/minimal-sidebar.css', import.meta.url), 'utf8'),
-    readFile(new URL('../web/minimal-sidebar.js', import.meta.url), 'utf8')
+    readFile(new URL('../web/minimal-sidebar.js', import.meta.url), 'utf8'),
+    readFile(new URL('../web/minimal-theme.css', import.meta.url), 'utf8')
   ]);
 
   assert.match(sidebarCss, /\.mh-sidebar/);
@@ -17,7 +19,14 @@ test('minimal sidebar assets and server injection contract are present', async (
   assert.match(sidebarJs, /localStorage/);
   assert.match(sidebarJs, /Dashboard/);
   assert.match(sidebarJs, /Relatórios/);
+  assert.match(themeCss, /body\.mh-layout/);
+  assert.match(themeCss, /\.card/);
+  assert.match(themeCss, /\.primary/);
   assert.match(server, /minimal-sidebar\.css/);
   assert.match(server, /minimal-sidebar\.js/);
+  assert.match(server, /minimal-theme\.css/);
   assert.match(server, /pageName !== '\/login\.html'/);
+  assert.match(localServer, /minimal-sidebar\.css/);
+  assert.match(localServer, /minimal-sidebar\.js/);
+  assert.match(localServer, /minimal-theme\.css/);
 });
