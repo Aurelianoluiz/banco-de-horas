@@ -36,7 +36,7 @@ const staticFile = async (pathname) => {
     if (type.startsWith('text/html')) {
       const pageName = decoded.toLowerCase();
       const bootstrap = '<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#2563eb"><link rel="stylesheet" href="/web/responsive.css">' +
-        (pageName !== '/login.html' ? '<link rel="stylesheet" href="/web/minimal-sidebar.css"><script src="/web/minimal-sidebar.js" defer></script>' : '') +
+        (pageName !== '/login.html' ? '<link rel="stylesheet" href="/web/minimal-sidebar.css"><link rel="stylesheet" href="/web/minimal-theme.css"><script src="/web/minimal-sidebar.js" defer></script>' : '') +
         '<script type="module" src="/web/auth-guard.js"></script><script type="module" src="/web/pwa.js"></script>';
       const indexCompat = pageName === '/index.html' ? '<script src="/web/index-compat.js"></script>' : '';
       return { body: Buffer.from(body.toString('utf8').replace(/<\\/head>/i, `${bootstrap}${indexCompat}</head>`)), type };
