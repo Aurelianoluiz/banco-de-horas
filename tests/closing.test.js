@@ -15,7 +15,7 @@ test('consolida créditos e débitos da competência', () => {
 
 test('fecha competência preservando saldo anterior', () => {
   const fechamento = closeMonth({
-    collaboratorId: 'c1',
+    colaboradorId: 'c1',
     competencia: '2026-08',
     saldoAnterior: 120,
     points: [
