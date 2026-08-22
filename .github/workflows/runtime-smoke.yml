@@ -1,0 +1,56 @@
+name: Runtime Smoke
+
+on:
+  push:
+    branches: [main, 'feat/**']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  runtime-smoke:
+    runs-on: ubuntu-latest
+    env:
+      PORT: 3000
+      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/banco_de_horas
+      AUTH_TOKEN_SECRET: runtime-smoke-secret-with-more-than-32-characters
+      BASE_URL: http://127.0.0.1:3000
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install
+      - name: Start Node server for static runtime smoke
+        run: |
+          npm start > /tmp/runtime-smoke.log 2>&1 &
+          echo $! > /tmp/runtime-smoke.pid
+      - name: Wait for HTTP server
+        run: |
+          for i in {1..20}; do
+            if curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:3000/ | grep -q '^200$'; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/runtime-smoke.log
+          exit 1
+      - name: Run runtime smoke
+        run: npm run smoke:runtime
+      - name: Upload runtime diagnostics
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-smoke-diagnostics-${{ github.run_id }}
+          path: /tmp/runtime-smoke.log
+          if-no-files-found: ignore
+      - name: Stop Node server
+        if: always()
+        run: |
+          if [ -f /tmp/runtime-smoke.pid ]; then kill "$(cat /tmp/runtime-smoke.pid)" || true; fi
