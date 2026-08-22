@@ -1,8 +1,8 @@
 // Consolidação mensal do banco de horas.
 
-export function monthlySummary(points, collaboratorId, competencia) {
+export function monthlySummary(points, colaboradorId, competencia) {
   return points
-    .filter(point => point.colaboradorId === collaboratorId && point.data.startsWith(competencia))
+    .filter(point => point.colaboradorId === colaboradorId && point.data.startsWith(competencia))
     .reduce((summary, point) => {
       const saldo = Number(point.saldo || 0);
       return {
@@ -12,11 +12,11 @@ export function monthlySummary(points, collaboratorId, competencia) {
     }, { creditos: 0, debitos: 0 });
 }
 
-export function closeMonth({ points=[], collaboratorId, competencia, saldoAnterior=0, fechadoEm=new Date().toISOString() }) {
-  if (!collaboratorId) throw new Error('Colaborador obrigatório.');
+export function closeMonth({ points=[], colaboradorId, competencia, saldoAnterior=0, fechadoEm=new Date().toISOString() }) {
+  if (!colaboradorId) throw new Error('Colaborador obrigatório.');
   if (!/^\d{4}-\d{2}$/.test(competencia)) throw new Error(`Competência inválida: ${competencia}`);
 
-  const summary = monthlySummary(points, collaboratorId, competencia);
+  const summary = monthlySummary(points, colaboradorId, competencia);
   const saldoFinal = saldoAnterior + summary.creditos - summary.debitos;
 
   return {
