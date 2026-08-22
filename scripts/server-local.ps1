@@ -32,6 +32,9 @@ function Read-Asset([string]$FilePath) {
     $text = [Text.Encoding]::UTF8.GetString($data)
     $pageName = [IO.Path]::GetFileName($FilePath).ToLowerInvariant()
     $injection = '<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#2563eb"><link rel="stylesheet" href="/web/responsive.css">'
+    if ($pageName -ne 'login.html' -and $text -notmatch 'web/auth-guard\.js') {
+      $injection += '<script type="module" src="/web/auth-guard.js"></script>'
+    }
     if ($pageName -ne 'login.html' -and $text -notmatch 'web/minimal-sidebar\.css') {
       $injection += '<link rel="stylesheet" href="/web/minimal-sidebar.css"><link rel="stylesheet" href="/web/minimal-theme.css"><script src="/web/minimal-sidebar.js" defer></script>'
     }
@@ -41,6 +44,9 @@ function Read-Asset([string]$FilePath) {
     if ($text -notmatch 'manifest.webmanifest') {
       $text = $text -replace '(?i)</head>', "$injection</head>"
     } else {
+      if ($pageName -ne 'login.html' -and $text -notmatch 'web/auth-guard\.js') {
+        $text = $text -replace '(?i)</head>', '<script type="module" src="/web/auth-guard.js"></script></head>'
+      }
       if ($pageName -ne 'login.html' -and $text -notmatch 'web/minimal-sidebar\.css') {
         $text = $text -replace '(?i)</head>', '<link rel="stylesheet" href="/web/minimal-sidebar.css"><link rel="stylesheet" href="/web/minimal-theme.css"><script src="/web/minimal-sidebar.js" defer></script></head>'
       }
